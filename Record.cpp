@@ -32,36 +32,20 @@ std::string Record::getCategory() const {
     return category;
 }
 
-bool Record::validateRequiredFields(const std::string& date,
-                                    const std::string& category,
-                                    std::string& errorMsg) {
+bool Record::validateData(const std::string& date,
+                          double amount,
+                          std::string& errorMsg) {
     if (date.empty()) {
         errorMsg = "Date is required.";
         return false;
     }
 
-    if (category.empty()) {
-        errorMsg = "Category is required.";
-        return false;
-    }
-
-    return true;
-}
-
-bool Record::validateDateFormat(const std::string& date,
-                                std::string& errorMsg) {
     std::regex pattern(R"(^\d{4}-\d{2}-\d{2}$)");
-
     if (!std::regex_match(date, pattern)) {
         errorMsg = "Date must be in YYYY-MM-DD format.";
         return false;
     }
 
-    return true;
-}
-
-bool Record::validateRealDate(const std::string& date,
-                              std::string& errorMsg) {
     int year = 0;
     int month = 0;
     int day = 0;
@@ -77,7 +61,6 @@ bool Record::validateRealDate(const std::string& date,
     }
 
     int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
     bool leapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
     if (leapYear) {
         daysInMonth[1] = 29;
@@ -88,11 +71,6 @@ bool Record::validateRealDate(const std::string& date,
         return false;
     }
 
-    return true;
-}
-
-bool Record::validateAmount(double amount,
-                            std::string& errorMsg) {
     if (std::isnan(amount)) {
         errorMsg = "Amount cannot be NaN.";
         return false;
@@ -103,5 +81,6 @@ bool Record::validateAmount(double amount,
         return false;
     }
 
+    errorMsg = "";
     return true;
 }
