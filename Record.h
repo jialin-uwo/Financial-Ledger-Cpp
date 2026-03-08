@@ -15,7 +15,7 @@ public:
     Record(int id,
            const std::string& date,
            double amount,
-           bool isExpense,
+           bool isExpense = true,
            const std::string& category = "Other");
 
     int getId() const;
@@ -24,18 +24,9 @@ public:
     bool getIsExpense() const;
     std::string getCategory() const;
 
-    static bool validateRequiredFields(const std::string& date,
-                                       const std::string& category,
-                                       std::string& errorMsg);
-
-    static bool validateDateFormat(const std::string& date,
-                                   std::string& errorMsg);
-
-    static bool validateRealDate(const std::string& date,
-                                 std::string& errorMsg);
-
-    static bool validateAmount(double amount,
-                               std::string& errorMsg);
+    static bool validateData(const std::string& date,
+                             double amount,
+                             std::string& errorMsg);
 };
 
 #endif
