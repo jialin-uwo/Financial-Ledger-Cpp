@@ -1,0 +1,3 @@
+id,date,amount,isExpense,category,note
+1,2025-04-01,4000,0,Salary,dinner with friend
+2,2025-04-02,20,1,Food,full-time job
