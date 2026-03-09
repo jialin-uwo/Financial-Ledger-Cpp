@@ -196,25 +196,23 @@ std::map<std::string, double> LedgerController::getPeriodSummary(std::string sta
 
 std::string LedgerController::getTotal(std::string start, std::string end, int isExpense, std::string cat)
 {
-    std::cout << "[DEBUG] getTotal called with start=" << start << ", end=" << end << ", isExpense=" << isExpense << ", cat=" << cat << std::endl;
+
     if (!start.empty() && !end.empty() && start > end)
     {
         this->lastError = "Invalid date range: Start date cannot be after end date.";
-        std::cout << "[DEBUG] Invalid date range, returning error." << std::endl;
+
         return "FAIL: " + this->lastError;
     }
 
     std::vector<Record> filteredRecords = getRecords(start, end, isExpense, cat); // Reuse filtering logic for consistency
-    std::cout << "[DEBUG] filteredRecords.size()=" << filteredRecords.size() << std::endl;
+
     if (filteredRecords.empty())
     {
         this->lastError = "No records found for the specified category and period.";
-        std::cout << "[DEBUG] No records found, returning error." << std::endl;
         return "FAIL: " + this->lastError;
     }
 
     auto summary = this->analyzer.calculateSummary(filteredRecords);
-    std::cout << "[DEBUG] summary.size()=" << summary.size() << std::endl;
     double income = summary.at("total_income");
     double expense = summary.at("total_expense");
     double balance = summary.at("net_balance");
@@ -238,6 +236,6 @@ std::string LedgerController::getTotal(std::string start, std::string end, int i
     }
 
     this->lastError = "";
-    std::cout << "[DEBUG] Returning: " << buffer << std::endl;
+    // ...existing code...
     return buffer;
 }
