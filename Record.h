@@ -15,8 +15,8 @@ public:
     Record(int id,
            const std::string& date,
            double amount,
-           bool isExpense = true,
-           const std::string& category = "Other");
+           bool isExpense,
+           const std::string& category = "");
 
     int getId() const;
     std::string getDate() const;
