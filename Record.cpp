@@ -4,49 +4,68 @@
 #include <cstdio>
 #include <regex>
 
-Record::Record(int id,
-               const std::string& date,
-               double amount,
-               bool isExpense,
-               const std::string& category)
-    : id(id), date(date), amount(amount), isExpense(isExpense) {
-    if (!category.empty()) {
-        this->category = category;
-    } else {
+Record::Record(int id, const std::string &date, double amount, bool isExpense, const std::string &category)
+    : id(id), date(date), amount(amount), isExpense(isExpense)
+{
+    auto trim = [](const std::string &s) -> std::string
+    {
+        size_t start = s.find_first_not_of(" \t\n\r");
+        if (start == std::string::npos)
+            return "";
+        size_t end = s.find_last_not_of(" \t\n\r");
+        return s.substr(start, end - start + 1);
+    };
+
+    std::string trimmedCategory = trim(category);
+
+    if (trimmedCategory.empty() || trimmedCategory == "other" || trimmedCategory == "Other")
+    {
         this->category = isExpense ? "Other Expense" : "Other Income";
+    }
+    else
+    {
+        this->category = trimmedCategory;
     }
 }
 
-int Record::getId() const {
+int Record::getId() const
+{
     return id;
 }
 
-std::string Record::getDate() const {
+std::string Record::getDate() const
+{
     return date;
 }
 
-double Record::getAmount() const {
+double Record::getAmount() const
+{
     return amount;
 }
 
-bool Record::getIsExpense() const {
+bool Record::getIsExpense() const
+{
     return isExpense;
 }
 
-std::string Record::getCategory() const {
+std::string Record::getCategory() const
+{
     return category;
 }
 
-bool Record::validateData(const std::string& date,
+bool Record::validateData(const std::string &date,
                           double amount,
-                          std::string& errorMsg) {
-    if (date.empty()) {
+                          std::string &errorMsg)
+{
+    if (date.empty())
+    {
         errorMsg = "Date is required.";
         return false;
     }
 
     std::regex pattern(R"(^\d{4}-\d{2}-\d{2}$)");
-    if (!std::regex_match(date, pattern)) {
+    if (!std::regex_match(date, pattern))
+    {
         errorMsg = "Date must be in YYYY-MM-DD format.";
         return false;
     }
@@ -55,38 +74,45 @@ bool Record::validateData(const std::string& date,
     int month = 0;
     int day = 0;
 
-    if (std::sscanf(date.c_str(), "%d-%d-%d", &year, &month, &day) != 3) {
+    if (std::sscanf(date.c_str(), "%d-%d-%d", &year, &month, &day) != 3)
+    {
         errorMsg = "Invalid date format.";
         return false;
     }
 
-    if (month < 1 || month > 12) {
+    if (month < 1 || month > 12)
+    {
         errorMsg = "Invalid month.";
         return false;
     }
 
     int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     bool leapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-    if (leapYear) {
+    if (leapYear)
+    {
         daysInMonth[1] = 29;
     }
 
-    if (day < 1 || day > daysInMonth[month - 1]) {
+    if (day < 1 || day > daysInMonth[month - 1])
+    {
         errorMsg = "Invalid day.";
         return false;
     }
 
-    if (std::isnan(amount)) {
+    if (std::isnan(amount))
+    {
         errorMsg = "Amount cannot be NaN.";
         return false;
     }
 
-    if (amount < 0.0) {
+    if (amount < 0.0)
+    {
         errorMsg = "Amount cannot be negative.";
         return false;
     }
 
-    if (amount == 0.0) {
+    if (amount == 0.0)
+    {
         errorMsg = "Amount cannot be zero.";
         return false;
     }
