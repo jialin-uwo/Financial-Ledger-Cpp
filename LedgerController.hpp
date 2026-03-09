@@ -2,7 +2,7 @@
  * @file LedgerController.h
  * @brief Orchestrates financial data flow between CSV storage and the User Interface.
  * * This controller manages a collection of financial records, providing services for
- * persistent storage via FileHandler and complex analytics via FinancialAnalyzer.
+ * persistent storage via DataAccess and complex analytics via FinancialAnalyzer.
  * It supports cumulative filtering and comprehensive reporting (Income, Expense, Balance)
  * to satisfy user requirements for financial health monitoring.
  * @author Jialin Li
@@ -15,21 +15,21 @@
 #include <string>
 #include "Record.h"
 #include "FinancialAnalyzer.h"
-#include "FileHandler.h"
+#include "DataAccess.h"
 
 class LedgerController
 {
 private:
     std::vector<Record> records; ///< In-memory storage of historical data
     FinancialAnalyzer analyzer;  ///< Component for summary and total calculations
-    FileHandler fileHandler;     ///< Component for CSV reading and writing
+    DataAccess dataAccess;       ///< Component for CSV reading and writing
     std::string lastError;       ///< Stores error descriptions
     int nextRecordId;            ///< Tracks the next available unique identifier
 
 public:
     /**
      * @brief Constructor: Initializes internal components via default constructors.
-     * @note Components like analyzer and fileHandler are instantiated here,
+     * @note Components like analyzer and dataAccess are instantiated here,
      * but no data is loaded yet.
      */
     LedgerController();
