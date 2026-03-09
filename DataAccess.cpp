@@ -13,11 +13,10 @@ using namespace std;
  * id, date, amount, isExpense, and category.
  *
  * @param path Optional custom file path. If empty, the default file is used.
- * @return A reference to the static vector containing loaded records.
+ * @return vector containing loaded records.
  */
 vector<Record> DataAccess::loadRecords(string path) {
     vector<Record> records;
-    records.clear();
 
     string filePath = path.empty() ? RECORD_FILE : path;
     ifstream file(filePath);
@@ -104,13 +103,15 @@ vector<Record> DataAccess::loadRecords(string path) {
  * id, date, amount, isExpense, and category.
  *
  * @param data The collection of records to save.
+ * @param path Optional custom file path. If empty, the default file is used.
  */
-void DataAccess::saveRecords(const vector<Record>& data) {
-    ofstream file(RECORD_FILE);
+bool DataAccess::saveRecords(const vector<Record>& data, string path) {
+    string filePath = path.empty() ? this->RECORD_FILE : path;
+    ofstream file(filePath);
 
     if (!file.is_open()) {
-        cerr << "Failed to write record file: " << RECORD_FILE << endl;
-        return;
+        cerr << "Failed to write record file: " << filePath << endl;
+        return false;
     }
 
     file << "id,date,amount,isExpense,category\n";
@@ -124,4 +125,5 @@ void DataAccess::saveRecords(const vector<Record>& data) {
     }
 
     file.close();
+    return true;
 }

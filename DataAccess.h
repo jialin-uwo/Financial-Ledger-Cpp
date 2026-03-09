@@ -31,7 +31,7 @@ public:
      * id, date, amount, isExpense, and category.
      *
      * @param path Optional custom file path.
-     * @return A reference to the loaded record list.
+     * @return the loaded record list.
      */
     vector<Record> loadRecords(string path = "");
 
@@ -43,8 +43,9 @@ public:
      * id, date, amount, isExpense, and category.
      *
      * @param data The list of records to save.
+     * @param path Optional custom file path. If empty, the default file is used.
      */
-    void saveRecords(const vector<Record>& data);
+    bool saveRecords(const std::vector<Record>& data, std::string path = "");
 };
 
 #endif
