@@ -15,7 +15,7 @@ void MenuSystem::run()
     {
         displayMainMenu();
 
-        std::cout << "\nPlease enter your choice (0-4): ";
+        std::cout << "\nPlease enter your choice (0-7): ";
         std::getline(std::cin, choice);
 
         if (choice == "0")
@@ -34,11 +34,12 @@ void MenuSystem::displayMainMenu()
 {
     std::cout << "\n-----------------------------------" << std::endl;
     std::cout << "1. Add a New Record" << std::endl;
-    std::cout << "2. View/Search Records" << std::endl;
-    std::cout << "3. Update a Record" << std::endl;
-    std::cout << "4. Delete a Record" << std::endl;
-    std::cout << "5. Financial Summary (All-in-one)" << std::endl;
-    std::cout << "6. Simple Period Total" << std::endl;
+    std::cout << "2. Add Records by File (Batch Import)" << std::endl;
+    std::cout << "3. View/Search Records" << std::endl;
+    std::cout << "4. Update a Record" << std::endl;
+    std::cout << "5. Delete a Record" << std::endl;
+    std::cout << "6. Financial Summary (All-in-one)" << std::endl;
+    std::cout << "7. Simple Period Total" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
@@ -51,27 +52,31 @@ void MenuSystem::handleCommand(std::string cmd)
     }
     else if (cmd == "2")
     {
-        handleSearchRecords();
+        handleAddRecordByFile();
     }
     else if (cmd == "3")
     {
-        handleUpdateRecord();
+        handleSearchRecords();
     }
     else if (cmd == "4")
     {
-        handleDeleteRecord();
+        handleUpdateRecord();
     }
     else if (cmd == "5")
     {
-        handleFinancialSummary();
+        handleDeleteRecord();
     }
     else if (cmd == "6")
+    {
+        handleFinancialSummary();
+    }
+    else if (cmd == "7")
     {
         handleSimpleTotal();
     }
     else
     {
-        std::cout << "Invalid Input! Please select a valid option (0-6)." << std::endl;
+        std::cout << "Invalid Input! Please select a valid option (0-7)." << std::endl;
     }
 }
 
@@ -100,16 +105,53 @@ void MenuSystem::handleAddRecord()
     std::cout << "\n> " << result << std::endl;
 }
 
+void MenuSystem::handleAddRecordByFile()
+{
+    std::cout << "\n--- Add Records by File (Batch Import) ---" << std::endl;
+    std::string filePath = getValidatedInput("Enter import file path: ");
+
+    std::string result = controller.addRecordsByFile(filePath);
+    std::cout << "\n> " << result << std::endl;
+
+    if (!controller.getLastError().empty())
+    {
+        std::cout << "> Reason: " << controller.getLastError() << std::endl;
+    }
+}
+
 void MenuSystem::handleSearchRecords()
 {
     std::cout << "\n--- View/Search Records ---" << std::endl;
     std::cout << "(Press Enter to skip any filter and view all)" << std::endl;
 
+    // Step 1: Get start date (optional)
     std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD): ", true);
+
+    // Step 2: Get end date (optional)
     std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD): ", true);
 
+    // Step 3: Get expense/income filter (optional)
+    std::cout << "Filter by type:" << std::endl;
+    std::cout << "  e - Expense only" << std::endl;
+    std::cout << "  i - Income only" << std::endl;
+    std::cout << "  Press Enter - No filter (both)" << std::endl;
+
+    std::string filterChoice = getValidatedInput("Enter your choice: ", true);
+
+    int isExpense = -1; // Default: no filter
+    if (filterChoice == "e" || filterChoice == "E")
+    {
+        isExpense = 1; // Expense only
+    }
+    else if (filterChoice == "i" || filterChoice == "I")
+    {
+        isExpense = 0; // Income only
+    }
+
+    // Step 4: Get minimum amount (optional)
     double minAmount = getValidatedAmount(true);
-    std::vector<Record> results = controller.getRecords(start, end, -1, "", minAmount);
+
+    std::vector<Record> results = controller.getRecords(start, end, isExpense, "", minAmount);
 
     if (results.empty())
     {
@@ -135,23 +177,33 @@ void MenuSystem::handleSearchRecords()
 void MenuSystem::handleSimpleTotal()
 {
     std::cout << "\n--- Simple Period Total ---" << std::endl;
-    std::string start, end;
 
-    while (true)
+    // Step 1: Get start date (optional)
+    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to skip): ", true);
+
+    // Step 2: Get end date (optional)
+    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to skip): ", true);
+
+    // Step 3: Get expense/income filter (optional)
+    std::cout << "Filter by type:" << std::endl;
+    std::cout << "  e - Expense only" << std::endl;
+    std::cout << "  i - Income only" << std::endl;
+    std::cout << "  Press Enter - No filter (both)" << std::endl;
+
+    std::string filterChoice = getValidatedInput("Enter your choice: ", true);
+
+    int isExpense = -1; // Default: no filter
+    if (filterChoice == "e" || filterChoice == "E")
     {
-        start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to skip): ", true);
-        end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to skip): ", true);
-
-        if (start.empty() && end.empty())
-        {
-            std::cout << "Error: You must provide AT LEAST one date (Start or End)!" << std::endl;
-        }
-        else
-        {
-            break;
-        }
+        isExpense = 1; // Expense only
     }
-    std::string result = controller.getTotal(start, end, -1, "");
+    else if (filterChoice == "i" || filterChoice == "I")
+    {
+        isExpense = 0; // Income only
+    }
+
+    // Call controller with all filters
+    std::string result = controller.getTotal(start, end, isExpense, "");
     std::cout << "\n> " << result << std::endl;
 }
 
@@ -205,11 +257,16 @@ void MenuSystem::handleDeleteRecord()
 void MenuSystem::handleFinancialSummary()
 {
     std::cout << "\n--- Financial Summary (All-in-one) ---" << std::endl;
-    std::map<std::string, double> summary = controller.getPeriodSummary("", "");
+    std::cout << "(Time filter only. Press Enter to skip Start/End date)" << std::endl;
+
+    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD): ", true);
+    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD): ", true);
+
+    std::map<std::string, double> summary = controller.getPeriodSummary(start, end);
 
     if (summary.empty())
     {
-        std::cout << "> No data available to generate summary." << std::endl;
+        std::cout << "> No data available to generate summary for the selected period." << std::endl;
         if (!controller.getLastError().empty())
         {
             std::cout << "> Reason: " << controller.getLastError() << std::endl;
