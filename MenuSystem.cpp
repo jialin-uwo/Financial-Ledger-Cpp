@@ -3,30 +3,35 @@
 #include <string>
 #include <iomanip>
 
-MenuSystem::MenuSystem(LedgerController& ctrl) : controller(ctrl) {}
+MenuSystem::MenuSystem(LedgerController &ctrl) : controller(ctrl) {}
 
-
-void MenuSystem::run() {
+void MenuSystem::run()
+{
     bool isRunning = true;
     std::string choice;
 
     std::cout << "\n=== Welcome to C-The-Cash ===" << std::endl;
-    while (isRunning) {
+    while (isRunning)
+    {
         displayMainMenu();
 
         std::cout << "\nPlease enter your choice (0-4): ";
         std::getline(std::cin, choice);
 
-        if (choice == "0") {
+        if (choice == "0")
+        {
             isRunning = false;
             exitMenu();
-        } else {
+        }
+        else
+        {
             handleCommand(choice);
         }
     }
 }
 
-void MenuSystem::displayMainMenu() {
+void MenuSystem::displayMainMenu()
+{
     std::cout << "\n-----------------------------------" << std::endl;
     std::cout << "1. Add a New Record" << std::endl;
     std::cout << "2. View/Search Records" << std::endl;
@@ -38,34 +43,48 @@ void MenuSystem::displayMainMenu() {
     std::cout << "-----------------------------------" << std::endl;
 }
 
-void MenuSystem::handleCommand(std::string cmd) {
-    if (cmd == "1") {
+void MenuSystem::handleCommand(std::string cmd)
+{
+    if (cmd == "1")
+    {
         handleAddRecord();
-    } else if (cmd == "2") {
+    }
+    else if (cmd == "2")
+    {
         handleSearchRecords();
-    } else if (cmd == "3") {
+    }
+    else if (cmd == "3")
+    {
         handleUpdateRecord();
-    } else if (cmd == "4") {
+    }
+    else if (cmd == "4")
+    {
         handleDeleteRecord();
-    } else if (cmd == "5") {
+    }
+    else if (cmd == "5")
+    {
         handleFinancialSummary();
-    } else if (cmd == "6") {
+    }
+    else if (cmd == "6")
+    {
         handleSimpleTotal();
-    } else {
+    }
+    else
+    {
         std::cout << "Invalid Input! Please select a valid option (0-6)." << std::endl;
     }
 }
 
-void MenuSystem::exitMenu() {
+void MenuSystem::exitMenu()
+{
     std::cout << "\nSaving your ledger data..." << std::endl;
     std::string result = controller.shutDown();
     std::cout << result << std::endl;
     std::cout << "See you next time!" << std::endl;
 }
 
-
-
-void MenuSystem::handleAddRecord() {
+void MenuSystem::handleAddRecord()
+{
     std::cout << "\n--- Add New Record ---" << std::endl;
 
     std::string date = getValidatedInput("Enter date (YYYY-MM-DD): ");
@@ -81,7 +100,8 @@ void MenuSystem::handleAddRecord() {
     std::cout << "\n> " << result << std::endl;
 }
 
-void MenuSystem::handleSearchRecords() {
+void MenuSystem::handleSearchRecords()
+{
     std::cout << "\n--- View/Search Records ---" << std::endl;
     std::cout << "(Press Enter to skip any filter and view all)" << std::endl;
 
@@ -89,17 +109,22 @@ void MenuSystem::handleSearchRecords() {
     std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD): ", true);
 
     double minAmount = getValidatedAmount(true);
-    std::vector<Record> results = controller.getRecords(start, end, -1, "Other", minAmount);
+    std::vector<Record> results = controller.getRecords(start, end, -1, "", minAmount);
 
-    if (results.empty()) {
+    if (results.empty())
+    {
         std::cout << "\n> No records found or invalid criteria." << std::endl;
-        if (!controller.getLastError().empty()) {
+        if (!controller.getLastError().empty())
+        {
             std::cout << "> Reason: " << controller.getLastError() << std::endl;
         }
-    } else {
+    }
+    else
+    {
         std::cout << "\n--- Found " << results.size() << " Records ---" << std::endl;
         std::cout << std::fixed << std::setprecision(2);
-        for (const auto& rec : results) {
+        for (const auto &rec : results)
+        {
             std::string type = rec.getIsExpense() ? "[Expense]" : "[Income ]";
             std::cout << "ID: " << rec.getId() << " | Date: " << rec.getDate()
                       << " | " << type << " | Amount: $" << rec.getAmount() << std::endl;
@@ -107,33 +132,41 @@ void MenuSystem::handleSearchRecords() {
     }
 }
 
-void MenuSystem::handleSimpleTotal() {
+void MenuSystem::handleSimpleTotal()
+{
     std::cout << "\n--- Simple Period Total ---" << std::endl;
     std::string start, end;
 
-    while (true) {
+    while (true)
+    {
         start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to skip): ", true);
         end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to skip): ", true);
 
-        if (start.empty() && end.empty()) {
+        if (start.empty() && end.empty())
+        {
             std::cout << "Error: You must provide AT LEAST one date (Start or End)!" << std::endl;
-        } else {
+        }
+        else
+        {
             break;
         }
-
-        std::string result = controller.getTotal(start, end, -1, "Other");
-        std::cout << "\n> " << result << std::endl;
     }
+    std::string result = controller.getTotal(start, end, -1, "");
+    std::cout << "\n> " << result << std::endl;
 }
 
-void MenuSystem::handleUpdateRecord() {
+void MenuSystem::handleUpdateRecord()
+{
     std::cout << "\n--- Update a Record ---" << std::endl;
     std::string idStr = getValidatedInput("Enter the Record ID to update: ");
     int id = 0;
 
-    try {
+    try
+    {
         id = std::stoi(idStr);
-    } catch (...) {
+    }
+    catch (...)
+    {
         std::cout << "> Error: Invalid ID format! Must be an integer." << std::endl;
         return;
     }
@@ -149,14 +182,18 @@ void MenuSystem::handleUpdateRecord() {
     std::cout << "\n> " << result << std::endl;
 }
 
-void MenuSystem::handleDeleteRecord() {
+void MenuSystem::handleDeleteRecord()
+{
     std::cout << "\n--- Delete a Record ---" << std::endl;
     std::string idStr = getValidatedInput("Enter the Record ID to delete: ");
     int id = 0;
 
-    try {
+    try
+    {
         id = std::stoi(idStr);
-    } catch (...) {
+    }
+    catch (...)
+    {
         std::cout << "> Error: Invalid ID format! Must be an integer." << std::endl;
         return;
     }
@@ -165,13 +202,16 @@ void MenuSystem::handleDeleteRecord() {
     std::cout << "\n> " << result << std::endl;
 }
 
-void MenuSystem::handleFinancialSummary() {
+void MenuSystem::handleFinancialSummary()
+{
     std::cout << "\n--- Financial Summary (All-in-one) ---" << std::endl;
     std::map<std::string, double> summary = controller.getPeriodSummary("", "");
 
-    if (summary.empty()) {
+    if (summary.empty())
+    {
         std::cout << "> No data available to generate summary." << std::endl;
-        if (!controller.getLastError().empty()) {
+        if (!controller.getLastError().empty())
+        {
             std::cout << "> Reason: " << controller.getLastError() << std::endl;
         }
         return;
@@ -179,23 +219,30 @@ void MenuSystem::handleFinancialSummary() {
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << std::fixed << std::setprecision(2);
-    for (const auto& pair : summary) {
+    for (const auto &pair : summary)
+    {
         std::cout << pair.first << ": $" << pair.second << std::endl;
     }
     std::cout << "-----------------------------------" << std::endl;
 }
 
 // Helpers
-std::string MenuSystem::getValidatedInput(std::string prompt, bool allowEmpty) {
+std::string MenuSystem::getValidatedInput(std::string prompt, bool allowEmpty)
+{
     std::string input;
-    while (true) {
+    while (true)
+    {
         std::cout << prompt;
         std::getline(std::cin, input);
 
-        if (input.empty()) {
-            if (allowEmpty) {
+        if (input.empty())
+        {
+            if (allowEmpty)
+            {
                 return "";
-            } else {
+            }
+            else
+            {
                 std::cout << "Input cannot be empty. Please try again." << std::endl;
                 continue;
             }
@@ -205,31 +252,39 @@ std::string MenuSystem::getValidatedInput(std::string prompt, bool allowEmpty) {
     }
 }
 
-double MenuSystem::getValidatedAmount(bool allowEmpty) {
+double MenuSystem::getValidatedAmount(bool allowEmpty)
+{
     std::string input;
     double amount = 0.0;
 
-    while (true) {
+    while (true)
+    {
         std::cout << "Enter amount (positive number" << (allowEmpty ? ", or press Enter to skip" : "") << "): ";
         std::getline(std::cin, input);
 
         // When users press Enter, it returns the default value 0.0.
-        if (input.empty() && allowEmpty) {
+        if (input.empty() && allowEmpty)
+        {
             return 0.0;
         }
 
-        try {
+        try
+        {
             amount = std::stod(input);
-            if (amount > 0) {
+            if (amount > 0)
+            {
                 break;
-            } else {
+            }
+            else
+            {
                 std::cout << "Amount must be greater than 0." << std::endl;
             }
-        } catch (...) {
+        }
+        catch (...)
+        {
             std::cout << "Invalid number format. Please try again." << std::endl;
         }
     }
 
     return amount;
 }
-
