@@ -1,3 +1,3 @@
-id,date,amount,isExpense,category,note
-1,2026-03-01,5000,0,Salary,lunch with friend
-2,2026-03-02,18,1,Food,part-time job
+id,date,amount,isExpense,category
+1,2026-03-01,5000,0,Salary
+2,2026-03-02,18,1,Food
