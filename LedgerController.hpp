@@ -59,10 +59,10 @@ public:
      * @param date Transaction date (YYYY-MM-DD).
      * @param amount Monetary value (> 0).
      * @param isExpense True for Expense, False for Income.
-     * @param cat Transaction category. Defaults to "Other".
+     * @param cat Transaction category. Pass empty string to disable category filtering.
      * @return "SUCCESS: Record added (ID: N)" or "FAIL: [Error details]".
      */
-    std::string addRecord(std::string date, double amount, bool isExpense, std::string cat = "Other");
+    std::string addRecord(std::string date, double amount, bool isExpense, std::string cat = "");
 
     /**
      * @brief Batch imports financial records from an external CSV file.
@@ -78,10 +78,10 @@ public:
      * @param date New transaction date in "YYYY-MM-DD" format.
      * @param amount New transaction amount (must be positive).
      * @param isExpense True if the transaction is an expense, false for income.
-     * @param cat New category name, defaults to "Other".
+     * @param cat New category name. Pass empty string to keep category unchanged or disable filtering.
      * @return "SUCCESS: Record ID #[id] is updated." if successful, "FAIL: [Error details]" otherwise.
      */
-    std::string updateRecord(int recordId, std::string date, double amount, bool isExpense, std::string cat = "Other");
+    std::string updateRecord(int recordId, std::string date, double amount, bool isExpense, std::string cat = "");
 
     /**
      * @brief Deletes a specific financial record by its ID.
@@ -102,17 +102,17 @@ public:
      * - start: Default "" (no date lower bound).
      * - end: Default "" (no date upper bound).
      * - isExpense: Default -1 (no transaction type filtering; -1=no filter, 0=income only, 1=expense only).
-     * - cat: Default "Other" (returns all categories including "Other").
+     * - cat: Pass empty string to disable category filtering.
      * - minAmount: Default 0.0 (no amount filtering).
      * @param start Optional start date (YYYY-MM-DD). Empty string means no lower bound.
      * @param end Optional end date (YYYY-MM-DD). Empty string means no upper bound.
      * @param isExpense Optional transaction type filter. Defaults to -1 (no filtering, returns both income and expense). Use 0 for income only, 1 for expense only.
-     * @param cat Optional category filter. Defaults to "Other"; only records matching this category are returned.
+     * @param cat Optional category filter. Pass empty string to return all categories.
      * @param minAmount Optional minimum amount threshold. Defaults to 0.0 (no filtering).
      * @return std::vector<Record> A list of matching records. Returns an empty vector if no matches are found or if inputs are invalid (check lastError).
      */
     std::vector<Record> getRecords(std::string start = "", std::string end = "",
-                                   int isExpense = -1, std::string cat = "Other", double minAmount = 0.0);
+                                   int isExpense = -1, std::string cat = "", double minAmount = 0.0);
 
     /**
      * @brief Generates a comprehensive financial summary for a specified period.
@@ -134,7 +134,7 @@ public:
      * Provides a detailed breakdown of spending habits. The filtering is cumulative based on optional parameters:
      * - Date range: Filters records within the specified date range.
      * - Transaction type: Can filter to income only, expense only, or both (default).
-     * - Category filter: When cat is "Other" (default), filters to that category. Otherwise filters to the specified category.
+     * - Category filter: When cat is "" (default), filters to that category. Otherwise filters to the specified category.
      * @param start Optional start date in "YYYY-MM-DD" format. Empty string means no lower bound.
      * @param end Optional end date in "YYYY-MM-DD" format. Empty string means no upper bound.
      * @param isExpense Optional transaction type filter. Defaults to -1 (no filter, returns both income and expense).
@@ -146,7 +146,7 @@ public:
      *         - For isExpense=1: "Total Expense: $X.XX"
      *         Returns error message if no records match the criteria.
      */
-    std::string getTotal(std::string start = "", std::string end = "", int isExpense = -1, std::string cat = "Other");
+    std::string getTotal(std::string start = "", std::string end = "", int isExpense = -1, std::string cat = "");
 };
 
 #endif // LEDGERCONTROLLER_H

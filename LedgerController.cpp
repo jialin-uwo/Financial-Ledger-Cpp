@@ -73,7 +73,7 @@ std::string LedgerController::shutDown()
     return "Data successfully saved. System shutting down.";
 }
 
-std::string LedgerController::addRecord(std::string date, double amount, bool isExpense, std::string category)
+std::string LedgerController::addRecord(std::string date, double amount, bool isExpense, std::string cat)
 {
     std::string errorMsg;
 
@@ -84,7 +84,7 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
     }
 
     // Create record on the stack (No 'new' keyword needed)
-    Record newRec(this->nextRecordId++, date, amount, isExpense, category);
+    Record newRec(this->nextRecordId++, date, amount, isExpense, cat);
 
     this->records.push_back(newRec);
     dataAccess.saveRecords(this->records);
