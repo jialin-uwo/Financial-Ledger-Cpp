@@ -33,7 +33,7 @@ public:
      * @param path Optional custom file path.
      * @return A reference to the loaded record list.
      */
-    vector<Record>& loadRecords(string path = "");
+    vector<Record> loadRecords(string path = "");
 
     /**
      * @brief Saves record data to the default CSV file.
