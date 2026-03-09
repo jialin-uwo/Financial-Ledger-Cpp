@@ -39,7 +39,7 @@ void MenuSystem::displayMainMenu()
     std::cout << "4. Update a Record" << std::endl;
     std::cout << "5. Delete a Record" << std::endl;
     std::cout << "6. Financial Summary (All-in-one)" << std::endl;
-    std::cout << "7. Simple Period Total" << std::endl;
+    std::cout << "7. Simple Total" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
@@ -176,7 +176,7 @@ void MenuSystem::handleSearchRecords()
 
 void MenuSystem::handleSimpleTotal()
 {
-    std::cout << "\n--- Simple Period Total ---" << std::endl;
+    std::cout << "\n--- Simple Total ---" << std::endl;
 
     // Step 1: Get start date (optional)
     std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to skip): ", true);

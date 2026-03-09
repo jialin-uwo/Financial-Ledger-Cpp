@@ -183,7 +183,7 @@ std::map<std::string, double> LedgerController::getPeriodSummary(std::string sta
         this->lastError = "Invalid date range: Start date cannot be after end date.";
         return {};
     }
-    std::vector<Record> filteredRecords = getRecords(start, end, -1, "Other"); // Reuse filtering logic for consistency
+    std::vector<Record> filteredRecords = getRecords(start, end, -1, ""); // Reuse filtering logic for consistency
     if (filteredRecords.empty())
     {
         this->lastError = "No records found for the specified period.";
