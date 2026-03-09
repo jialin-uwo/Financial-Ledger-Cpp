@@ -276,9 +276,35 @@ void MenuSystem::handleFinancialSummary()
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << std::fixed << std::setprecision(2);
+    // Print total income, expense, net balance first
+    if (summary.count("total_income"))
+        std::cout << "Total Income: $" << summary["total_income"] << std::endl;
+    if (summary.count("total_expense"))
+        std::cout << "Total Expense: $" << summary["total_expense"] << std::endl;
+    if (summary.count("net_balance"))
+        std::cout << "Net Balance: $" << summary["net_balance"] << std::endl;
+
+    // Print breakdown by category if any
+    bool hasCategory = false;
     for (const auto &pair : summary)
     {
-        std::cout << pair.first << ": $" << pair.second << std::endl;
+        if (pair.first.rfind("category:", 0) == 0)
+        {
+            hasCategory = true;
+            break;
+        }
+    }
+    if (hasCategory)
+    {
+        std::cout << "\nBreakdown by Category:" << std::endl;
+        for (const auto &pair : summary)
+        {
+            if (pair.first.rfind("category:", 0) == 0)
+            {
+                std::string catName = pair.first.substr(9); // after "category:"
+                std::cout << "  • " << catName << ": $" << pair.second << std::endl;
+            }
+        }
     }
     std::cout << "-----------------------------------" << std::endl;
 }
