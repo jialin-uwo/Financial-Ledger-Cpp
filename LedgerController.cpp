@@ -209,11 +209,11 @@ std::string LedgerController::getTotal(std::string start, std::string end, int i
     if (filteredRecords.empty())
     {
         this->lastError = "No records found for the specified category and period.";
-        .return "FAIL: " + this->lastError;
+        return "FAIL: " + this->lastError;
     }
 
     auto summary = this->analyzer.calculateSummary(filteredRecords);
-    .double income = summary.at("total_income");
+    double income = summary.at("total_income");
     double expense = summary.at("total_expense");
     double balance = summary.at("net_balance");
 
