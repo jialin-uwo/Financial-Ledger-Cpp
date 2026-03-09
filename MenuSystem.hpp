@@ -13,6 +13,7 @@ private:
 
     // Record CRUD
     void handleAddRecord();
+    void handleAddRecordByFile();
     void handleSearchRecords();
     void handleSimpleTotal();
     void handleUpdateRecord();
