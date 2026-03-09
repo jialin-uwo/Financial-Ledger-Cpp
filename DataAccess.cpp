@@ -15,52 +15,62 @@ using namespace std;
  * @param path Optional custom file path. If empty, the default file is used.
  * @return vector containing loaded records.
  */
-vector<Record> DataAccess::loadRecords(string path) {
+vector<Record> DataAccess::loadRecords(string path)
+{
     vector<Record> records;
 
     string filePath = path.empty() ? RECORD_FILE : path;
     ifstream file(filePath);
 
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         cerr << "Failed to open record file: " << filePath << endl;
         return records;
     }
 
-    auto parseRecordLine = [&](const string& row) -> bool {
+    auto parseRecordLine = [&](const string &row) -> bool
+    {
         stringstream ss(row);
         string token;
         int id = 0;
         string date;
         double amount = 0.0;
         bool isExpense = true;
-        string category = "Other";
+        string category = "";
         string errorMsg;
 
-        try {
-            if (!getline(ss, token, ',')) {
+        try
+        {
+            if (!getline(ss, token, ','))
+            {
                 return false;
             }
             id = stoi(token);
 
-            if (!getline(ss, date, ',')) {
+            if (!getline(ss, date, ','))
+            {
                 return false;
             }
 
-            if (!getline(ss, token, ',')) {
+            if (!getline(ss, token, ','))
+            {
                 return false;
             }
             amount = stod(token);
 
-            if (!getline(ss, token, ',')) {
+            if (!getline(ss, token, ','))
+            {
                 return false;
             }
             isExpense = (token == "1" || token == "true" || token == "True");
 
-            if (getline(ss, token, ',')) {
-                category = token.empty() ? "Other" : token;
+            if (getline(ss, token, ','))
+            {
+                category = token; // 保持空字符串，交由 Record 构造函数处理
             }
 
-            if (!Record::validateData(date, amount, errorMsg)) {
+            if (!Record::validateData(date, amount, errorMsg))
+            {
                 cerr << "Invalid record line skipped: " << row
                      << " (" << errorMsg << ")" << endl;
                 return false;
@@ -68,7 +78,9 @@ vector<Record> DataAccess::loadRecords(string path) {
 
             records.emplace_back(id, date, amount, isExpense, category);
             return true;
-        } catch (...) {
+        }
+        catch (...)
+        {
             return false;
         }
     };
@@ -76,18 +88,23 @@ vector<Record> DataAccess::loadRecords(string path) {
     string line;
 
     // Read first line and skip header if necessary
-    if (getline(file, line)) {
-        if (line.find("id") == string::npos && !parseRecordLine(line)) {
+    if (getline(file, line))
+    {
+        if (line.find("id") == string::npos && !parseRecordLine(line))
+        {
             cerr << "Invalid record line skipped: " << line << endl;
         }
     }
 
-    while (getline(file, line)) {
-        if (line.empty()) {
+    while (getline(file, line))
+    {
+        if (line.empty())
+        {
             continue;
         }
 
-        if (!parseRecordLine(line)) {
+        if (!parseRecordLine(line))
+        {
             cerr << "Invalid record line skipped: " << line << endl;
         }
     }
@@ -105,18 +122,21 @@ vector<Record> DataAccess::loadRecords(string path) {
  * @param data The collection of records to save.
  * @param path Optional custom file path. If empty, the default file is used.
  */
-bool DataAccess::saveRecords(const vector<Record>& data, string path) {
+bool DataAccess::saveRecords(const vector<Record> &data, string path)
+{
     string filePath = path.empty() ? this->RECORD_FILE : path;
     ofstream file(filePath);
 
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         cerr << "Failed to write record file: " << filePath << endl;
         return false;
     }
 
     file << "id,date,amount,isExpense,category\n";
 
-    for (const auto& record : data) {
+    for (const auto &record : data)
+    {
         file << record.getId() << ","
              << record.getDate() << ","
              << record.getAmount() << ","

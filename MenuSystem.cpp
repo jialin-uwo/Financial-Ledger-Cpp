@@ -100,7 +100,7 @@ void MenuSystem::handleAddRecord()
 
     bool isExpense = (typeStr == "y" || typeStr == "Y");
 
-    std::string result = controller.addRecord(date, amount, isExpense, "Other");
+    std::string result = controller.addRecord(date, amount, isExpense, "");
 
     std::cout << "\n> " << result << std::endl;
 }
@@ -230,7 +230,7 @@ void MenuSystem::handleUpdateRecord()
     std::string typeStr = getValidatedInput("Is it an expense? (y/n): ");
     bool isExpense = (typeStr == "y" || typeStr == "Y");
 
-    std::string result = controller.updateRecord(id, date, amount, isExpense, "Other");
+    std::string result = controller.updateRecord(id, date, amount, isExpense, "");
     std::cout << "\n> " << result << std::endl;
 }
 
@@ -296,7 +296,7 @@ void MenuSystem::handleFinancialSummary()
     }
     if (hasCategory)
     {
-        std::cout << "\nBreakdown by Category:" << std::endl;
+        std::cout << "\nBreakdown expense by category:" << std::endl;
         for (const auto &pair : summary)
         {
             if (pair.first.rfind("category:", 0) == 0)
