@@ -76,6 +76,11 @@ bool Record::validateData(const std::string& date,
         return false;
     }
 
+    if (amount < 0.0) {
+        errorMsg = "Amount cannot be negative.";
+        return false;
+    }
+
     if (amount == 0.0) {
         errorMsg = "Amount cannot be zero.";
         return false;
