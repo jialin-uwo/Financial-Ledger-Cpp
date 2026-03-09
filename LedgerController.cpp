@@ -8,13 +8,14 @@
  * @date 2026-03-06
  */
 #include "LedgerController.hpp"
+#include <iostream>
 #include <vector>
 #include <cstdio>
 
 LedgerController::LedgerController()
 {
     // Initialize components and set up initial state
-    // analyzer and fileHandler are initialized via default constructors
+    // analyzer and dataAccess are initialized via default constructors
     lastError = "";
     nextRecordId = 1; // Start IDs from 1 for better readability
 }
@@ -23,13 +24,13 @@ LedgerController::~LedgerController()
 {
     // Safety net: attempt to save if the UI forgot to call shutDown()
     this->shutDown();
-    // No need to delete analyzer or fileHandler as they are member objects, not pointers
+    // No need to delete analyzer or dataAccess as they are member objects, not pointers
 }
 
 std::string LedgerController::init()
 {
     // 1. Retrieve raw data from the persistent storage (CSV)
-    std::vector<Record> rawRecords = fileHandler.loadRecords();
+    std::vector<Record> rawRecords = dataAccess.loadRecords();
 
     // 2. Clear current memory buffer to prevent duplication
     this->records.clear();
@@ -48,7 +49,7 @@ std::string LedgerController::init()
     // 5. Immediate Persistence: Sync the normalized data back to CSV
     if (!records.empty())
     {
-        fileHandler.saveRecords(this->records);
+        dataAccess.saveRecords(this->records);
     }
 
     // 6. Generate the UI Message based on the result
@@ -68,14 +69,8 @@ std::string LedgerController::init()
 std::string LedgerController::shutDown()
 {
     // Attempt to save current records to CSV
-    if (fileHandler.saveRecords(this->records))
-    {
-        return "Data successfully saved. System shutting down.";
-    }
-    else
-    {
-        return "Error: Failed to save data. Please check file permissions.";
-    }
+    dataAccess.saveRecords(this->records);
+    return "Data successfully saved. System shutting down.";
 }
 
 std::string LedgerController::addRecord(std::string date, double amount, bool isExpense, std::string category)
@@ -92,14 +87,14 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
     Record newRec(this->nextRecordId++, date, amount, isExpense, category);
 
     this->records.push_back(newRec);
-    fileHandler.saveRecords(this->records);
+    dataAccess.saveRecords(this->records);
 
     return "SUCCESS: Record added (ID: " + std::to_string(newRec.getId()) + ").";
 }
 
 std::string LedgerController::addRecordsByFile(std::string filePath)
 {
-    std::vector<Record> importedRecords = fileHandler.loadRecords();
+    std::vector<Record> importedRecords = dataAccess.loadRecords(filePath);
     if (importedRecords.empty())
     {
         return "FAIL: No records found in the specified file or file access error.";
@@ -109,7 +104,7 @@ std::string LedgerController::addRecordsByFile(std::string filePath)
         Record standardizedRec(this->nextRecordId++, r.getDate(), r.getAmount(), r.getIsExpense(), r.getCategory());
         this->records.push_back(standardizedRec);
     }
-    fileHandler.saveRecords(this->records);
+    dataAccess.saveRecords(this->records);
     return "SUCCESS: Imported " + std::to_string(importedRecords.size()) + " records from file.";
 }
 
@@ -132,7 +127,7 @@ std::string LedgerController::removeRecord(int id)
         if (it->getId() == id)
         {
             this->records.erase(it);
-            this->fileHandler.saveRecords(this->records);
+            this->dataAccess.saveRecords(this->records);
             return "SUCCESS: Record #" + std::to_string(id) + " deleted.";
         }
     }
@@ -161,7 +156,7 @@ std::vector<Record> LedgerController::getRecords(std::string start, std::string 
             continue;
         if (!end.empty() && rec.getDate() > end)
             continue;
-        if (cat != "Other" && rec.getCategory() != cat)
+        if (!cat.empty() && rec.getCategory() != cat)
             continue;
         if (rec.getAmount() < minAmount)
             continue;
@@ -201,23 +196,28 @@ std::map<std::string, double> LedgerController::getPeriodSummary(std::string sta
 
 std::string LedgerController::getTotal(std::string start, std::string end, int isExpense, std::string cat)
 {
+    std::cout << "[DEBUG] getTotal called with start=" << start << ", end=" << end << ", isExpense=" << isExpense << ", cat=" << cat << std::endl;
     if (!start.empty() && !end.empty() && start > end)
     {
         this->lastError = "Invalid date range: Start date cannot be after end date.";
+        std::cout << "[DEBUG] Invalid date range, returning error." << std::endl;
         return "FAIL: " + this->lastError;
     }
 
     std::vector<Record> filteredRecords = getRecords(start, end, isExpense, cat); // Reuse filtering logic for consistency
+    std::cout << "[DEBUG] filteredRecords.size()=" << filteredRecords.size() << std::endl;
     if (filteredRecords.empty())
     {
         this->lastError = "No records found for the specified category and period.";
+        std::cout << "[DEBUG] No records found, returning error." << std::endl;
         return "FAIL: " + this->lastError;
     }
 
     auto summary = this->analyzer.calculateSummary(filteredRecords);
-    double income = summary.at("Income");
-    double expense = summary.at("Expense");
-    double balance = summary.at("Balance");
+    std::cout << "[DEBUG] summary.size()=" << summary.size() << std::endl;
+    double income = summary.at("total_income");
+    double expense = summary.at("total_expense");
+    double balance = summary.at("net_balance");
 
     // Format the response based on the isExpense filter
     char buffer[256];
@@ -238,5 +238,6 @@ std::string LedgerController::getTotal(std::string start, std::string end, int i
     }
 
     this->lastError = "";
+    std::cout << "[DEBUG] Returning: " << buffer << std::endl;
     return buffer;
 }

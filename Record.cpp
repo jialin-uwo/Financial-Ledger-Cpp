@@ -9,7 +9,12 @@ Record::Record(int id,
                double amount,
                bool isExpense,
                const std::string& category)
-    : id(id), date(date), amount(amount), isExpense(isExpense), category(category) {
+    : id(id), date(date), amount(amount), isExpense(isExpense) {
+    if (!category.empty()) {
+        this->category = category;
+    } else {
+        this->category = isExpense ? "Other Expense" : "Other Income";
+    }
 }
 
 int Record::getId() const {
@@ -86,6 +91,6 @@ bool Record::validateData(const std::string& date,
         return false;
     }
 
-    errorMsg = "";
+    errorMsg.clear();
     return true;
 }
