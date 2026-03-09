@@ -41,7 +41,7 @@ std::string LedgerController::init()
     for (const auto &r : rawRecords)
     {
         // emplace_back constructs the Record directly in the vector's memory
-        Record standardizedRec(this->nextRecordId++, r.getDate(), r.getAmount(), r.getType(), r.getCategory());
+        Record standardizedRec(this->nextRecordId++, r.getDate(), r.getAmount(), r.getIsExpense(), r.getCategory());
         this->records.push_back(standardizedRec);
     }
 
@@ -106,7 +106,7 @@ std::string LedgerController::addRecordsByFile(std::string filePath)
     }
     for (const auto &r : importedRecords)
     {
-        Record standardizedRec(this->nextRecordId++, r.getDate(), r.getAmount(), r.getType(), r.getCategory());
+        Record standardizedRec(this->nextRecordId++, r.getDate(), r.getAmount(), r.getIsExpense(), r.getCategory());
         this->records.push_back(standardizedRec);
     }
     fileHandler.saveRecords(this->records);
@@ -161,11 +161,11 @@ std::vector<Record> LedgerController::getRecords(std::string start, std::string 
             continue;
         if (!end.empty() && rec.getDate() > end)
             continue;
-        if (cat != "Other" && rec.getCategory().getName() != cat)
+        if (cat != "Other" && rec.getCategory() != cat)
             continue;
         if (rec.getAmount() < minAmount)
             continue;
-        if (isExpense != -1 && rec.getType() != (isExpense == 1))
+        if (isExpense != -1 && rec.getIsExpense() != (isExpense == 1))
             continue;
         filteredRecords.push_back(rec);
     }
