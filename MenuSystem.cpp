@@ -108,7 +108,33 @@ void MenuSystem::handleAddRecord()
 void MenuSystem::handleAddRecordByFile()
 {
     std::cout << "\n--- Add Records by File (Batch Import) ---" << std::endl;
-    std::string filePath = getValidatedInput("Enter import file path: ");
+    std::cout << R"(====================================================
+           IMPORT DATA FROM CSV FILE
+====================================================
+
+[ 1. CSV FORMAT GUIDE ]
+   Format: id,date,amount,isExpense,category
+   Example: 1,2024-01-01,4150,0,Other Income
+
+[ 2. ABOUT THE 'ID' COLUMN ]
+   - Please fill the ID column with "1" for all rows.
+   - The system will automatically re-assign a unique
+     Global ID to each record upon import.
+
+[ 3. SMART CATEGORIZATION ]
+   If the 'Category' field is empty, the system will
+   automatically assign:
+   - "Other Income"   (for Income types)
+   - "Other Expense"  (for Expense types)
+
+[ 4. SYSTEM REQUIREMENTS ]
+   - Date format: YYYY-MM-DD
+   - File format: .csv (Comma Separated)
+
+Please enter the FULL path to your CSV file:
+> _
+====================================================)";
+    std::string filePath = getValidatedInput("\nEnter import file path: ");
 
     std::string result = controller.addRecordsByFile(filePath);
     std::cout << "\n> " << result << std::endl;
@@ -342,7 +368,7 @@ double MenuSystem::getValidatedAmount(bool allowEmpty)
 
     while (true)
     {
-        std::cout << "Enter amount (positive number" << (allowEmpty ? ", or press Enter to skip" : "") << "): ";
+        std::cout << "Enter amount (positive number(Example: 50.00)" << (allowEmpty ? ", or press Enter to skip" : "") << "): ";
         std::getline(std::cin, input);
 
         // When users press Enter, it returns the default value 0.0.
