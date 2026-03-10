@@ -109,27 +109,29 @@ void MenuSystem::handleAddRecordByFile()
 {
     std::cout << "\n--- Add Records by File (Batch Import) ---" << std::endl;
     std::cout << R"(====================================================
-           IMPORT DATA FROM CSV FILE
+              IMPORT DATA FROM CSV FILE
 ====================================================
 
 [ 1. CSV FORMAT GUIDE ]
-   Format: id,date,amount,isExpense,category
-   Example: 1,2024-01-01,4150,0,Other Income
+    Format: id,date,amount,isExpense,category
+    Example: 1,2024-01-01,4150.11,true,Other Income
+             2,2024-01-02,22.22,false,Other Expense
 
-[ 2. ABOUT THE 'ID' COLUMN ]
-   - Please fill the ID column with "1" for all rows.
-   - The system will automatically re-assign a unique
-     Global ID to each record upon import.
+[ 2. ABOUT THE 'isExpense' COLUMN ]
+    - You can use true/false or 1/0 (case-insensitive)
+    - If left blank or with an invalid value, the system will treat it as expense (true)
 
-[ 3. SMART CATEGORIZATION ]
-   If the 'Category' field is empty, the system will
-   automatically assign:
-   - "Other Income"   (for Income types)
-   - "Other Expense"  (for Expense types)
+[ 3. ABOUT THE 'ID' COLUMN ]
+    - Please fill the ID column with "1" for all rows; the system will auto-assign unique IDs
 
-[ 4. SYSTEM REQUIREMENTS ]
-   - Date format: YYYY-MM-DD
-   - File format: .csv (Comma Separated)
+[ 4. SMART CATEGORIZATION ]
+    If the 'Category' field is empty, the system will automatically assign:
+    - "Other Income"   (for income)
+    - "Other Expense"  (for expense)
+
+[ 5. SYSTEM REQUIREMENTS ]
+    - Date format: YYYY-MM-DD
+    - File format: .csv (Comma Separated)
 
 Please enter the FULL path to your CSV file:
 > _

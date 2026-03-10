@@ -60,13 +60,25 @@ vector<Record> DataAccess::loadRecords(string path)
 
             if (!getline(ss, token, ','))
             {
-                return false;
+                isExpense = true;
             }
-            isExpense = (token == "1" || token == "true" || token == "True");
+            else if (token.empty())
+            {
+                isExpense = true;
+            }
+            else
+            {
+                if (token == "1" || token == "true" || token == "True")
+                    isExpense = true;
+                else if (token == "0" || token == "false" || token == "False")
+                    isExpense = false;
+                else
+                    isExpense = true;
+            }
 
             if (getline(ss, token, ','))
             {
-                category = token; // 保持空字符串，交由 Record 构造函数处理
+                category = token;
             }
 
             if (!Record::validateData(date, amount, errorMsg))
