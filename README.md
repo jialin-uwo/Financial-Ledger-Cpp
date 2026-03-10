@@ -1,53 +1,76 @@
-# CS 3307 Group27 Ledger System
 
-## Project Overview
-This project is a C++-based personal finance ledger system. It supports adding, deleting, searching, and updating financial records, batch CSV import, category and period-based statistics, and summary features. Data is persisted in CSV files, making it suitable for command-line bookkeeping.
 
-## Main Features
-- Add/Delete/Update income and expense records
-- Query records by date range, category, amount, etc.
-- Batch import from CSV files
-- Financial summary (total income, total expense, net balance)
-- Simple period total statistics
-- Error messages and input validation
 
-## File Structure
-- `main.cpp`              Program entry, UI initialization
-- `MenuSystem.cpp/hpp`    Menu and user interaction logic
-- `LedgerController.cpp/hpp`  Business logic controller
-- `DataAccess.cpp/h`      Data persistence and CSV I/O
-- `Record.cpp/h`          Record data structure and validation
-- `FinancialAnalyzer.cpp/h`  Financial statistics and analysis
-- `records.csv`           Ledger data file
-- `runtime.csv`           Runtime data (if any)
+# CS 3307 Group 27 Ledger System
 
-## Build & Run
-1. Enter the project directory:
-   ```sh
-   cd group27
-   ```
-2. Compile:
-   ```sh
-   g++ -std=c++17 *.cpp -o ledger
-   ```
-3. Run:
-   ```sh
-   ./ledger
-   ```
+A terminal-based personal finance ledger system supporting income/expense management, data persistence, batch import, and basic statistical analysis—helping users efficiently track and analyze their daily finances.
 
-## Usage
-- Follow the menu prompts to select features by number.
-- When adding/updating records, enter date, amount, type (income/expense), and category (leave blank for auto-assignment).
-- For queries/summaries, you can filter by date, category, etc. Leave blank for all.
-- Batch import supports standard CSV format.
+## 🚀 Quick Start
 
-## Notes
-- Date format: `YYYY-MM-DD`.
-- If category is left blank, expenses default to "Other Expense", income to "Other Income".
-- All inputs are validated; errors will be shown with messages.
 
-## Contributors
-- All members of Group27
+**Recommended Environment:**
+- Western University CS Virtual Machine (GAUL) (strongly recommended for consistent running and testing)
+- Or any Linux environment with g++ 9+ and full C++17 support (required)
+	- C++17 support is mandatory for successful compilation and execution.
+	- This ensures the program can run and be tested without platform-specific issues.
 
-## Contact
-For questions, contact the course staff or project members.
+1. **Enter the project directory**
+	```bash
+	cd group27
+	```
+2. **Compile the project**
+	```bash
+	g++ -std=c++17 *.cpp -o ledger
+	```
+3. **Run the application**
+	```bash
+	./ledger
+	```
+
+---
+
+## 📁 Project Structure
+
+- `main.cpp` — Program entry point and UI initialization
+- `LedgerController.cpp/hpp` — Core business logic controller and coordinator
+- `DataAccess.cpp/h` — Data persistence and CSV I/O operations
+- `FinancialAnalyzer.cpp/h` — Statistical analysis and total calculation engine
+- `Record.cpp/h` — Data structure for financial records with built-in validation
+- `MenuSystem.cpp/hpp` — Terminal-based user interaction logic
+- `records.csv` — Main ledger data file (persistent financial records)
+- `runtime.csv` — Temporary or batch import file (for session or analytics)
+
+---
+
+## 📦 Batch Import & Usage Notes
+
+- **Batch Import (Add by File):** Use the "Add by File" feature to batch import records from a CSV file. Place `runtime.csv` in the project root. The format must match `records.csv` (columns: id, date, amount, isExpense, category). Imported data merges into `records.csv`.
+- **Date Format:** Inputs must follow the `YYYY-MM-DD` format.
+- **Auto-Assignment:** If a category is blank, the system defaults to `Other Expense` or `Other Income` for aggregation.
+- **Documentation:** All source code is Doxygen-commented for future technical documentation.
+
+---
+
+## 🏗 Implementation Strategy (Stage 3)
+
+This stage marks the transition from design to functional development, focusing on a robust Data Flow and Persistence Layer (**~30% of total scope**).
+
+### Prototype Completion (30%)
+- **Record CRUD:** Full Create, Read, Update, Delete for transactions
+- **Data Persistence:** Load/Save via CSV for session continuity
+- **Initialization & Safety:** `init()`/`shutDown()` for re-indexing and safe file streaming
+- **Core Analytics:** Calculation engines for `getTotal` and `getPeriodSummary`
+
+### Design Decisions & Trade-offs
+- **Category Logic Simplification:** Advanced Category CRUD deferred to Stage 4; current structure supports category attributes
+
+#### Technical Reasoning
+- **Logical Dependencies:** Full category system requires complex validation and cascading updates
+- **Data Integrity:** Prioritized persistence and record management before high-level business rules
+- **Visualization Roadmap:** Structured summaries now; graphical analysis (charts, diagrams) planned for Stage 4
+
+---
+
+## 👥 Contributors
+
+All members of Group 27.
