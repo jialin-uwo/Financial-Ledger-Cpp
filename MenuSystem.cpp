@@ -118,7 +118,7 @@ void MenuSystem::handleAddRecordByFile()
              2,2024-01-02,22.22,false,Other Expense
 
 [ 2. ABOUT THE 'isExpense' COLUMN ]
-    - You can use true/false or 1/0 (case-insensitive)
+    - You can use true/false(case-insensitive) or 1/0 
     - If left blank or with an invalid value, the system will treat it as expense (true)
 
 [ 3. ABOUT THE 'ID' COLUMN ]
