@@ -23,7 +23,8 @@
  * and its category. It also provides getter methods for accessing these
  * attributes and a static validation function for checking date and amount input.
  */
-class Record {
+class Record
+{
 private:
     /** @brief Unique identifier for the record. */
     int id;
@@ -53,10 +54,10 @@ public:
      * @param category The category of the transaction. Defaults to an empty string.
      */
     Record(int id,
-           const std::string& date,
+           const std::string &date,
            double amount,
-           bool isExpense,
-           const std::string& category = "");
+           bool isExpense = true,
+           const std::string &category = "");
 
     /**
      * @brief Gets the record ID.
@@ -105,9 +106,9 @@ public:
      * @param errorMsg Output parameter for the validation error message.
      * @return True if the data is valid; false otherwise.
      */
-    static bool validateData(const std::string& date,
+    static bool validateData(const std::string &date,
                              double amount,
-                             std::string& errorMsg);
+                             std::string &errorMsg);
 };
 
 #endif
