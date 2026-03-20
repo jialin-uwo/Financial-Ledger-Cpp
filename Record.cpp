@@ -2,8 +2,10 @@
  * @file Record.cpp
  * @brief Implementation of the Record class.
  * @author Xinyan Cai
+ *
  * This file contains the implementation of the Record data model, including
- * object construction, attribute access, and validation logic for date and amount.
+ * object construction, attribute access, mutator logic, and validation logic
+ * for date and amount.
  */
 
 #include "Record.h"
@@ -13,12 +15,28 @@
 #include <regex>
 
 /**
+ * @brief Trims leading and trailing whitespace from a string.
+ *
+ * @param s The input string.
+ * @return A copy of the string without leading or trailing whitespace.
+ */
+static std::string trimString(const std::string &s)
+{
+    size_t start = s.find_first_not_of(" \t\n\r");
+    if (start == std::string::npos)
+    {
+        return "";
+    }
+
+    size_t end = s.find_last_not_of(" \t\n\r");
+    return s.substr(start, end - start + 1);
+}
+
+/**
  * @brief Constructs a Record object.
  *
  * Initializes a financial record with the provided id, date, amount,
- * transaction type, and category. The category string is trimmed before use.
- * If the category is empty or equals "other"/"Other", a default category is
- * assigned based on whether the record represents an expense or income.
+ * transaction type, and category.
  *
  * @param id The unique identifier of the record.
  * @param date The transaction date in YYYY-MM-DD format.
@@ -26,34 +44,14 @@
  * @param isExpense True if the record is an expense; false if it is income.
  * @param category The category name for the transaction.
  */
-Record::Record(int id, const std::string &date, double amount, bool isExpense, const std::string &category)
+Record::Record(int id,
+               const std::string &date,
+               double amount,
+               bool isExpense,
+               const std::string &category)
     : id(id), date(date), amount(amount), isExpense(isExpense)
 {
-    /**
-     * @brief Trims leading and trailing whitespace from a string.
-     *
-     * @param s The input string.
-     * @return A copy of the string without leading or trailing whitespace.
-     */
-    auto trim = [](const std::string &s) -> std::string
-    {
-        size_t start = s.find_first_not_of(" \t\n\r");
-        if (start == std::string::npos)
-            return "";
-        size_t end = s.find_last_not_of(" \t\n\r");
-        return s.substr(start, end - start + 1);
-    };
-
-    std::string trimmedCategory = trim(category);
-
-    if (trimmedCategory.empty() || trimmedCategory == "other" || trimmedCategory == "Other")
-    {
-        this->category = isExpense ? "Other Expense" : "Other Income";
-    }
-    else
-    {
-        this->category = trimmedCategory;
-    }
+    setCategory(category);
 }
 
 /**
@@ -107,6 +105,81 @@ std::string Record::getCategory() const
 }
 
 /**
+ * @brief Sets the record ID.
+ *
+ * @param id The new unique identifier of the record.
+ */
+void Record::setId(int id)
+{
+    this->id = id;
+}
+
+/**
+ * @brief Sets the record date.
+ *
+ * @param date The new transaction date string.
+ */
+void Record::setDate(const std::string &date)
+{
+    this->date = date;
+}
+
+/**
+ * @brief Sets the record amount.
+ *
+ * @param amount The new transaction amount.
+ */
+void Record::setAmount(double amount)
+{
+    this->amount = amount;
+}
+
+/**
+ * @brief Sets whether the record is an expense.
+ *
+ * If the current category is one of the default categories
+ * ("Other Expense" or "Other Income"), the category is updated
+ * automatically to remain consistent with the transaction type.
+ *
+ * @param isExpense True if the record is an expense, false if it is income.
+ */
+void Record::setIsExpense(bool isExpense)
+{
+    bool wasDefaultCategory =
+        (category == "Other Expense" || category == "Other Income");
+
+    this->isExpense = isExpense;
+
+    if (wasDefaultCategory)
+    {
+        category = isExpense ? "Other Expense" : "Other Income";
+    }
+}
+
+/**
+ * @brief Sets the record category.
+ *
+ * Trims leading and trailing whitespace from the category string before use.
+ * If the category is empty or equals "other"/"Other", a default category is
+ * assigned based on whether the record represents an expense or income.
+ *
+ * @param category The new category name.
+ */
+void Record::setCategory(const std::string &category)
+{
+    std::string trimmedCategory = trimString(category);
+
+    if (trimmedCategory.empty() || trimmedCategory == "other" || trimmedCategory == "Other")
+    {
+        this->category = isExpense ? "Other Expense" : "Other Income";
+    }
+    else
+    {
+        this->category = trimmedCategory;
+    }
+}
+
+/**
  * @brief Validates the date and amount for a financial record.
  *
  * This function checks that:
@@ -122,7 +195,7 @@ std::string Record::getCategory() const
  * @param date The date string to validate.
  * @param amount The amount value to validate.
  * @param errorMsg Output parameter that stores the validation error message.
- * @return True if both date and amount are valid, false otherwise.
+ * @return True if both date and amount are valid; false otherwise.
  */
 bool Record::validateData(const std::string &date,
                           double amount,
@@ -159,6 +232,7 @@ bool Record::validateData(const std::string &date,
 
     int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     bool leapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+
     if (leapYear)
     {
         daysInMonth[1] = 29;
