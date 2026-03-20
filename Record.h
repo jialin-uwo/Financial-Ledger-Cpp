@@ -4,7 +4,8 @@
  *
  * This file defines the Record class, which represents a financial transaction
  * record in the system. It includes core attributes such as id, date, amount,
- * transaction type, and category, as well as accessor methods and validation logic.
+ * transaction type, and category, as well as accessor and mutator methods
+ * and validation logic.
  *
  * @author Xinyan Cai
  */
@@ -20,8 +21,9 @@
  *
  * The Record class stores the essential information for one transaction,
  * including its identifier, date, amount, whether it is an expense,
- * and its category. It also provides getter methods for accessing these
- * attributes and a static validation function for checking date and amount input.
+ * and its category. It provides getter and setter methods for accessing
+ * and modifying these attributes, as well as a static validation function
+ * for checking date and amount input.
  */
 class Record
 {
@@ -93,6 +95,48 @@ public:
      * @return The category string of the record.
      */
     std::string getCategory() const;
+
+    /**
+     * @brief Sets the record ID.
+     *
+     * @param id The new unique identifier of the record.
+     */
+    void setId(int id);
+
+    /**
+     * @brief Sets the transaction date.
+     *
+     * @param date The new date string in YYYY-MM-DD format.
+     */
+    void setDate(const std::string &date);
+
+    /**
+     * @brief Sets the transaction amount.
+     *
+     * @param amount The new monetary amount of the record.
+     */
+    void setAmount(double amount);
+
+    /**
+     * @brief Sets whether the record is an expense.
+     *
+     * If the current category is one of the default categories
+     * ("Other Expense" or "Other Income"), the category is updated
+     * automatically to stay consistent with the new transaction type.
+     *
+     * @param isExpense True if the record is an expense; false if it is income.
+     */
+    void setIsExpense(bool isExpense);
+
+    /**
+     * @brief Sets the category of the transaction.
+     *
+     * If the category is empty or equals "other"/"Other", a default category
+     * is assigned based on whether the record represents an expense or income.
+     *
+     * @param category The new category string.
+     */
+    void setCategory(const std::string &category);
 
     /**
      * @brief Validates the date and amount of a record.
