@@ -1,51 +1,113 @@
 #ifndef DATAACCESS_H
 #define DATAACCESS_H
 
+#include <map>
 #include <string>
 #include <vector>
 #include "Record.h"
+#include "Category.h"
 
 using namespace std;
 
 /**
- * @class DataAccess
- * @brief Handles loading and saving record data from and to CSV files.
+ * @struct LoadReport
+ * @brief Stores the summary of one CSV loading operation.
  *
- * This class manages file persistence for Record objects.
- * Each record is stored in CSV format with five columns:
- * id, date, amount, isExpense, and category.
+ * processedRows counts all non-header, non-empty rows that were attempted.
+ * successRows counts rows successfully converted into objects.
+ * errorRows counts rows that failed parsing or validation.
+ * errorsByMessage groups line numbers by error message.
  */
-class DataAccess {
+struct LoadReport
+{
+    int processedRows = 0;
+    int successRows = 0;
+    int errorRows = 0;
+    map<string, vector<int>> errorsByMessage;
+};
+
+/**
+ * @class DataAccess
+ * @brief Handles loading and saving ledger data in CSV format.
+ *
+ * This class supports persistence for both Record objects and Category objects.
+ * Records and categories are stored in separate CSV files.
+ */
+class DataAccess
+{
 private:
     /**
-     * @brief Default CSV file path for record storage.
+     * @brief Default CSV file path for transaction records.
      */
     const string RECORD_FILE = "records.csv";
 
+    /**
+     * @brief Default CSV file path for categories.
+     */
+    const string CATEGORY_FILE = "categories.csv";
+
 public:
     /**
-     * @brief Loads record data from a CSV file.
+     * @brief Loads records from the default storage file, where each row already contains an ID.
      *
-     * If no path is provided, the default record file is used.
-     * Each row is parsed into a Record object with five fields:
-     * id, date, amount, isExpense, and category.
+     * Expected CSV format:
+     * id,date,amount,isExpense,category
      *
-     * @param path Optional custom file path.
-     * @return the loaded record list.
+     * @param report Output report that stores row-level statistics and errors.
+     * @return A list of successfully loaded records.
      */
-    vector<Record> loadRecords(string path = "");
+    vector<Record> loadRecordsWithId(LoadReport &report);
 
     /**
-     * @brief Saves record data to the default CSV file.
+     * @brief Loads records from an external CSV file without an ID column.
      *
-     * The file is overwritten and all records are written in
-     * five-column CSV format:
-     * id, date, amount, isExpense, and category.
+     * Expected CSV format:
+     * date,amount,isExpense,category
+     *
+     * @param path The CSV file path to import from.
+     * @param report Output report that stores row-level statistics and errors.
+     * @return A list of successfully loaded records.
+     */
+    vector<Record> loadRecordsWithoutId(const string &path, LoadReport &report);
+
+    /**
+     * @brief Saves records to a CSV file.
+     *
+     * Output CSV format:
+     * id,date,amount,isExpense,category
      *
      * @param data The list of records to save.
-     * @param path Optional custom file path. If empty, the default file is used.
+     * @param path Optional custom output path. If empty, the default file is used.
+     * @return True if saving succeeds; otherwise false.
      */
-    bool saveRecords(const std::vector<Record>& data, std::string path = "");
+    bool saveRecords(const vector<Record> &data, string path = "");
+
+    /**
+     * @brief Loads categories from a CSV file.
+     *
+     * Expected CSV format:
+     * name,isExpense,budget,warningThreshold
+     *
+     * If budget is empty, it defaults to -0.1.
+     * If warningThreshold is empty, it defaults to -1.0.
+     *
+     * @param report Output report that stores row-level statistics and errors.
+     * @param path Optional custom input path. If empty, the default file is used.
+     * @return A list of successfully loaded categories.
+     */
+    vector<Category> loadCategories(LoadReport &report, string path = "");
+
+    /**
+     * @brief Saves categories to a CSV file.
+     *
+     * Output CSV format:
+     * name,isExpense,budget,warningThreshold
+     *
+     * @param data The list of categories to save.
+     * @param path Optional custom output path. If empty, the default file is used.
+     * @return True if saving succeeds; otherwise false.
+     */
+    bool saveCategories(const vector<Category> &data, string path = "");
 };
 
 #endif
