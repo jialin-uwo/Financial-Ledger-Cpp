@@ -41,10 +41,10 @@ public:
     ~LedgerController();
 
     /**
-     * @brief Initialization: Opens the CSV file and populates the records vector.
+     * @brief Initialization: Loads persisted records and categories into memory.
      * @return A status message for the UI:
-     * - "System initialized. No existing records found." : Case for new users or empty CSV files.
-     * - "System initialized. Successfully loaded and re-indexed [N] records." : Normal case where data exists and is re-indexed.
+     * - "System initialized. No existing records found. Loaded [M] categories." : Case for new users or empty CSV files.
+        * - "System initialized. Successfully loaded [N] records. Loaded [M] categories." : Normal case where data exists and has been loaded.
      * @note The UI should call this immediately after construction.
      */
     std::string init();

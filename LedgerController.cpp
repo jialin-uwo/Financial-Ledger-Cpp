@@ -30,6 +30,9 @@ LedgerController::~LedgerController()
 
 std::string LedgerController::init()
 {
+    // 0. Load categories from persistent storage
+    this->categories = dataAccess.loadCategories();
+
     // 1. Retrieve raw data from the persistent storage (CSV)
     std::vector<Record> rawRecords = dataAccess.loadRecordsWithId();
 
@@ -58,14 +61,16 @@ std::string LedgerController::init()
     {
         this->lastError = "";
         // This could be a new user (empty file) or a potential error
-        return "System initialized. No existing records found.";
+        return "System initialized. No existing records found. Loaded " +
+               std::to_string(this->categories.size()) + " categories.";
     }
     else
     {
         this->lastError = "";
         // Success case: show how many records were processed
-        return "System initialized. Successfully loaded and re-indexed " +
-               std::to_string(this->records.size()) + " records.";
+        return "System initialized. Successfully loaded " +
+               std::to_string(this->records.size()) + " records. Loaded " +
+               std::to_string(this->categories.size()) + " categories.";
     }
 }
 
