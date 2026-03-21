@@ -130,7 +130,7 @@ namespace
      * @brief Checks whether a line looks like a category header.
      *
      * @param line Input line.
-     * @return True if the line looks like a category header; otherwise false.
+     * @return True if the line looks like a header; otherwise false.
      */
     bool isCategoryHeaderLine(const string &line)
     {
@@ -350,7 +350,7 @@ namespace
      * @param name Output category name.
      * @param isExpense Output type flag.
      * @param budget Output budget value.
-     * @param warningThreshold Output warning threshold.
+     * @param warningThreshold Output warning threshold value.
      * @param errorMsg Output error message.
      * @return True if parsing succeeds; otherwise false.
      */
@@ -430,21 +430,18 @@ namespace
 }
 
 /**
- * @brief Loads records from the default storage file, where rows already contain IDs.
+ * @brief Loads categories from the default category storage file.
  *
- * @param report Output report that stores row-level statistics and errors.
- * @return A list of successfully loaded records.
+ * @return A list of successfully loaded categories.
  */
-vector<Record> DataAccess::loadRecordsWithId(LoadReport &report)
+vector<Category> DataAccess::loadCategories()
 {
-    report = LoadReport{};
-    vector<Record> records;
+    vector<Category> categories;
 
-    ifstream file(RECORD_FILE);
+    ifstream file(CATEGORY_FILE);
     if (!file.is_open())
     {
-        addError(report, "Failed to open file.", 0);
-        return records;
+        return categories;
     }
 
     string line;
@@ -463,13 +460,69 @@ vector<Record> DataAccess::loadRecordsWithId(LoadReport &report)
         if (!firstNonEmptyLineHandled)
         {
             firstNonEmptyLineHandled = true;
-            if (isRecordHeaderLine(line, true))
+            if (isCategoryHeaderLine(line))
             {
                 continue;
             }
         }
 
-        report.processedRows++;
+        string name;
+        bool isExpense = true;
+        double budget = -0.1;
+        double warningThreshold = -1.0;
+        string errorMsg;
+
+        if (!parseCategoryRow(line, name, isExpense, budget, warningThreshold, errorMsg))
+        {
+            continue;
+        }
+
+        try
+        {
+            categories.emplace_back(name, isExpense, budget, warningThreshold);
+        }
+        catch (...)
+        {
+            continue;
+        }
+    }
+
+    return categories;
+}
+
+/**
+ * @brief Loads records from the default record storage file, where rows already contain IDs.
+ *
+ * @return A list of successfully loaded records.
+ */
+vector<Record> DataAccess::loadRecordsWithId()
+{
+    vector<Record> records;
+
+    ifstream file(RECORD_FILE);
+    if (!file.is_open())
+    {
+        return records;
+    }
+
+    string line;
+    bool firstNonEmptyLineHandled = false;
+
+    while (getline(file, line))
+    {
+        if (isBlankLine(line))
+        {
+            continue;
+        }
+
+        if (!firstNonEmptyLineHandled)
+        {
+            firstNonEmptyLineHandled = true;
+            if (isRecordHeaderLine(line, true))
+            {
+                continue;
+            }
+        }
 
         int id = 0;
         string date;
@@ -481,11 +534,6 @@ vector<Record> DataAccess::loadRecordsWithId(LoadReport &report)
         if (parseRecordRowWithId(line, id, date, amount, isExpense, category, errorMsg))
         {
             records.emplace_back(id, date, amount, isExpense, category);
-            report.successRows++;
-        }
-        else
-        {
-            addError(report, errorMsg, lineNumber);
         }
     }
 
@@ -600,77 +648,6 @@ bool DataAccess::saveRecords(const vector<Record> &data, string path)
     }
 
     return true;
-}
-
-/**
- * @brief Loads categories from a CSV file.
- *
- * @param report Output report that stores row-level statistics and errors.
- * @param path Optional custom input path.
- * @return A list of successfully loaded categories.
- */
-vector<Category> DataAccess::loadCategories(LoadReport &report, string path)
-{
-    report = LoadReport{};
-    vector<Category> categories;
-
-    string filePath = path.empty() ? CATEGORY_FILE : path;
-    ifstream file(filePath);
-
-    if (!file.is_open())
-    {
-        addError(report, "Failed to open file.", 0);
-        return categories;
-    }
-
-    string line;
-    int lineNumber = 0;
-    bool firstNonEmptyLineHandled = false;
-
-    while (getline(file, line))
-    {
-        ++lineNumber;
-
-        if (isBlankLine(line))
-        {
-            continue;
-        }
-
-        if (!firstNonEmptyLineHandled)
-        {
-            firstNonEmptyLineHandled = true;
-            if (isCategoryHeaderLine(line))
-            {
-                continue;
-            }
-        }
-
-        report.processedRows++;
-
-        string name;
-        bool isExpense = true;
-        double budget = -0.1;
-        double warningThreshold = -1.0;
-        string errorMsg;
-
-        if (!parseCategoryRow(line, name, isExpense, budget, warningThreshold, errorMsg))
-        {
-            addError(report, errorMsg, lineNumber);
-            continue;
-        }
-
-        try
-        {
-            categories.emplace_back(name, isExpense, budget, warningThreshold);
-            report.successRows++;
-        }
-        catch (const exception &e)
-        {
-            addError(report, e.what(), lineNumber);
-        }
-    }
-
-    return categories;
 }
 
 /**

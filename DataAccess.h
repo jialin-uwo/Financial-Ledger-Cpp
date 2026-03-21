@@ -48,21 +48,40 @@ private:
 
 public:
     /**
-     * @brief Loads records from the default storage file, where each row already contains an ID.
+     * @brief Loads categories from the default category storage file.
+     *
+     * Expected CSV format:
+     * name,isExpense,budget,warningThreshold
+     *
+     * If budget is empty, it defaults to -0.1.
+     * If warningThreshold is empty, it defaults to -1.0.
+     *
+     * This method reads from the system file only and does not generate a load report.
+     *
+     * @return A list of successfully loaded categories.
+     */
+    vector<Category> loadCategories();
+
+    /**
+     * @brief Loads records from the default record storage file, where each row already contains an ID.
      *
      * Expected CSV format:
      * id,date,amount,isExpense,category
      *
-     * @param report Output report that stores row-level statistics and errors.
+     * This method reads from the system file only and does not generate a load report.
+     *
      * @return A list of successfully loaded records.
      */
-    vector<Record> loadRecordsWithId(LoadReport &report);
+    vector<Record> loadRecordsWithId();
 
     /**
      * @brief Loads records from an external CSV file without an ID column.
      *
      * Expected CSV format:
      * date,amount,isExpense,category
+     *
+     * This method is intended for user-uploaded files. It validates each row and
+     * records detailed error information in the provided report.
      *
      * @param path The CSV file path to import from.
      * @param report Output report that stores row-level statistics and errors.
@@ -81,21 +100,6 @@ public:
      * @return True if saving succeeds; otherwise false.
      */
     bool saveRecords(const vector<Record> &data, string path = "");
-
-    /**
-     * @brief Loads categories from a CSV file.
-     *
-     * Expected CSV format:
-     * name,isExpense,budget,warningThreshold
-     *
-     * If budget is empty, it defaults to -0.1.
-     * If warningThreshold is empty, it defaults to -1.0.
-     *
-     * @param report Output report that stores row-level statistics and errors.
-     * @param path Optional custom input path. If empty, the default file is used.
-     * @return A list of successfully loaded categories.
-     */
-    vector<Category> loadCategories(LoadReport &report, string path = "");
 
     /**
      * @brief Saves categories to a CSV file.
