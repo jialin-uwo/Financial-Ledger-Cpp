@@ -3,8 +3,8 @@
  * @brief Declaration of the Category class.
  *
  * This file defines the Category class, which represents a transaction
- * category in the system. A category has a unique name, a transaction type,
- * an optional budget, and a warning threshold for budget monitoring.
+ * category in the system. A category has a name, a transaction type,
+ * an optional budget, and an optional warning threshold for budget monitoring.
  *
  * @author Xinyan Cai
  */
@@ -13,7 +13,6 @@
 #define CATEGORY_H
 
 #include <string>
-#include <unordered_set>
 #include "BudgetStatus.h"
 
 /**
@@ -21,64 +20,101 @@
  * @brief Represents a financial category for transaction records.
  *
  * The Category class stores the basic information of a category, including
- * its unique name, whether it is an expense category, its budget amount,
+ * its name, whether it is an expense category, its budget amount,
  * and its warning threshold.
  *
  * Rules:
- * - name is required and must be unique
+ * - name is required
  * - isExpense defaults to true
- * - budget defaults to -0.1
- * - warningThreshold defaults to 70% of budget if not explicitly provided
+ * - budget defaults to -1.0
+ * - warningThreshold defaults to -1.0
+ *
+ * In this class, -1.0 means "not set".
+ *
+ * If budget >= 0 and warningThreshold == -1.0, the warning threshold
+ * is automatically derived as 70% of the budget during construction.
+ *
+ * Category does not perform duplicate-name validation. Name uniqueness
+ * should be managed by outer logic such as the controller.
+ *
+ * Validation should be performed by calling Category::valid(...)
+ * before constructing a Category object.
  */
 class Category
 {
 private:
-    /** @brief Unique category name. */
+    /** @brief Category name. */
     std::string name;
 
     /** @brief True if this category is for expenses; false if for income. */
     bool isExpense;
 
-    /** @brief Budget limit for the category. */
+    /**
+     * @brief Budget limit for the category.
+     *
+     * A value of -1.0 means the budget is not set.
+     */
     double budget;
 
-    /** @brief Warning threshold for the category. */
-    double warningThreshold;
-
     /**
-     * @brief Tracks all used category names to enforce uniqueness.
+     * @brief Warning threshold for the category.
+     *
+     * A value of -1.0 means the warning threshold is not set.
      */
-    static std::unordered_set<std::string> usedNames;
+    double warningThreshold;
 
 public:
     /**
      * @brief Constructs a Category object.
      *
-     * Creates a category with a required unique name.
-     * If @p warningThreshold is not explicitly provided, it is set to 70%
-     * of @p budget during construction.
+     * Creates a category with the given values. Validation should be done
+     * before construction by calling Category::valid(...).
      *
-     * @param name The category name. Must not be empty or duplicated.
+     * If budget >= 0 and warningThreshold == -1.0, the warning threshold
+     * is automatically set to 70% of the budget.
+     *
+     * Invalid input is expected to be intercepted by Category::valid(...)
+     * before construction. The constructor does not handle the main
+     * validation/error-reporting workflow.
+     *
+     * @param name The category name.
      * @param isExpense True if this category is for expenses; false if for income.
      *                  Defaults to true.
-     * @param budget The budget limit for this category. Defaults to -0.1.
+     * @param budget The budget limit for this category. Defaults to -1.0.
+     *               A value of -1.0 means "not set".
      * @param warningThreshold The warning threshold for this category.
-     *        If set to -1.0, it will be initialized to 70% of @p budget.
-     *
-     * @throws std::invalid_argument If the name is empty.
-     * @throws std::runtime_error If the name already exists.
+     *                         Defaults to -1.0. A value of -1.0 means "not set".
      */
     Category(const std::string &name,
              bool isExpense = true,
-             double budget = -0.1,
+             double budget = -1.0,
              double warningThreshold = -1.0);
 
     /**
-     * @brief Destroys the Category object.
+     * @brief Validates category input data.
      *
-     * Removes the category name from the uniqueness registry.
+     * This method checks whether the given category data is valid for
+     * constructing a Category object. If validation fails, an explanatory
+     * message is stored in @p errorMsg.
+     *
+     * This method does not check duplicate names. Name uniqueness is managed
+     * by outer logic.
+     *
+     * Validation includes:
+     * - name must not be empty
+     * - budget and warningThreshold must satisfy the system rules
+     * - -1.0 is treated as "not set"
+     *
+     * @param name The category name to validate.
+     * @param budget The budget value to validate.
+     * @param warningThreshold The warning threshold value to validate.
+     * @param errorMsg Output parameter for the validation error message.
+     * @return True if the data is valid; false otherwise.
      */
-    ~Category();
+    static bool valid(const std::string &name,
+                      double budget,
+                      double warningThreshold,
+                      std::string &errorMsg);
 
     /**
      * @brief Gets the category name.
@@ -97,26 +133,21 @@ public:
     /**
      * @brief Gets the category budget.
      *
-     * @return The budget value.
+     * @return The budget value. A value of -1.0 means "not set".
      */
     double getBudget() const;
 
     /**
      * @brief Gets the warning threshold.
      *
-     * @return The warning threshold value.
+     * @return The warning threshold value. A value of -1.0 means "not set".
      */
     double getWarningThreshold() const;
 
     /**
      * @brief Sets the category name.
      *
-     * The new name must not be empty and must remain unique.
-     *
      * @param name The new category name.
-     *
-     * @throws std::invalid_argument If the name is empty.
-     * @throws std::runtime_error If the name already exists.
      */
     void setName(const std::string &name);
 
@@ -181,14 +212,6 @@ public:
      * @return A BudgetStatus object describing the current budget condition.
      */
     BudgetStatus getBudgetStatus(double amount) const;
-
-    /**
-     * @brief Checks whether a category name already exists.
-     *
-     * @param name The category name to check.
-     * @return True if the name already exists; false otherwise.
-     */
-    static bool exists(const std::string &name);
 };
 
 #endif
