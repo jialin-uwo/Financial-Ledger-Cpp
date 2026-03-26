@@ -1,5 +1,5 @@
 /**
- * @file BudgetStatus.h
+* @file BudgetStatus.h
  * @brief Declaration of the BudgetStatus structure.
  *
  * This file defines the BudgetStatus structure, which stores
@@ -46,7 +46,7 @@ struct BudgetStatus
     double dailyAvailable = -1.0;
 
     /** @brief Overall budget health status. */
-    BudgetHealth budgetHealth = BudgetHealth::Safe;
+    BudgetHealth budgetHealth = BudgetHealth::Unknown;
 };
 
 #endif
