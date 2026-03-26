@@ -57,19 +57,6 @@ namespace
     }
 
     /**
-     * @brief Adds one error entry into the load report.
-     *
-     * @param report The report to update.
-     * @param message The error message.
-     * @param lineNumber The line number where the error happened.
-     */
-    void addError(LoadReport &report, const string &message, int lineNumber)
-    {
-        report.errorRows++;
-        report.errorsByMessage[message].push_back(lineNumber);
-    }
-
-    /**
      * @brief Parses the isExpense token into a boolean value.
      *
      * Accepted true values: 1, true
@@ -554,14 +541,14 @@ vector<Record> DataAccess::loadRecordsWithoutId(const string &path, LoadReport &
 
     if (path.empty())
     {
-        addError(report, "Input path is required.", 0);
+        report.addError("Input path is required.", 0);
         return records;
     }
 
     ifstream file(path);
     if (!file.is_open())
     {
-        addError(report, "Failed to open file.", 0);
+        report.addError("Failed to open file.", 0);
         return records;
     }
 
@@ -587,7 +574,7 @@ vector<Record> DataAccess::loadRecordsWithoutId(const string &path, LoadReport &
             }
         }
 
-        report.processedRows++;
+        report.addProcessedRow();
 
         string date;
         double amount = 0.0;
@@ -598,11 +585,11 @@ vector<Record> DataAccess::loadRecordsWithoutId(const string &path, LoadReport &
         if (parseRecordRowWithoutId(line, date, amount, isExpense, category, errorMsg))
         {
             records.emplace_back(0, date, amount, isExpense, category);
-            report.successRows++;
+            report.addSuccessLine(lineNumber);
         }
         else
         {
-            addError(report, errorMsg, lineNumber);
+            report.addError(errorMsg, lineNumber);
         }
     }
 

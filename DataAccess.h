@@ -24,6 +24,62 @@ struct LoadReport
     int successRows = 0;
     int errorRows = 0;
     map<string, vector<int>> errorsByMessage;
+    vector<int> successLineNumbers;
+
+    /** @brief Records one processed input row. */
+    void addProcessedRow()
+    {
+        processedRows++;
+    }
+
+    /**
+     * @brief Records one successful parse result and its original source line.
+     * @param lineNumber The original CSV line number.
+     */
+    void addSuccessLine(int lineNumber)
+    {
+        successRows++;
+        successLineNumbers.push_back(lineNumber);
+    }
+
+    /**
+     * @brief Replaces the current success count with a final accepted count.
+     * @param count The final number of successfully accepted records.
+     */
+    void setSuccessCount(int count)
+    {
+        successRows = count;
+    }
+
+    /**
+     * @brief Adds one error entry into the report.
+     * @param message The error message.
+     * @param lineNumber The original CSV line number.
+     */
+    void addError(const string &message, int lineNumber)
+    {
+        errorRows++;
+        errorsByMessage[message].push_back(lineNumber);
+    }
+
+    /**
+     * @brief Returns the original CSV line number for one successfully parsed record.
+     * @param index The index in the successfully parsed record list.
+     * @return The corresponding original CSV line number, or 0 if unavailable.
+     */
+    int getSuccessLineNumber(size_t index) const
+    {
+        return index < successLineNumbers.size() ? successLineNumbers[index] : 0;
+    }
+
+    /**
+     * @brief Checks whether the report contains any successful records.
+     * @return True if at least one record succeeded; otherwise false.
+     */
+    bool hasSuccesses() const
+    {
+        return successRows > 0;
+    }
 };
 
 /**

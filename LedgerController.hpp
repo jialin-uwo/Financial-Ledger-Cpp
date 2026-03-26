@@ -27,6 +27,8 @@ private:
     std::string lastError;            ///< Stores error descriptions
     int nextRecordId;                 ///< Tracks the next available unique identifier
 
+    static std::string trim(const std::string &value);
+
 public:
     /**
      * @brief Constructor: Initializes internal components via default constructors.
@@ -44,14 +46,14 @@ public:
      * @brief Initialization: Loads persisted records and categories into memory.
      * @return A status message for the UI:
      * - "System initialized. No existing records found. Loaded [M] categories." : Case for new users or empty CSV files.
-        * - "System initialized. Successfully loaded [N] records. Loaded [M] categories." : Normal case where data exists and has been loaded.
+     * - "System initialized. Successfully loaded [N] records. Loaded [M] categories." : Normal case where data exists and has been loaded.
      * @note The UI should call this immediately after construction.
      */
     std::string init();
 
     /**
      * @brief Saves data and closes the file stream.
-     * @return std::string Status of the shutdown.
+     * @return std::string Status of the shutdown. Returns "FAIL: ..." if record persistence fails.
      */
     std::string shutDown();
 
@@ -63,6 +65,9 @@ public:
      * @param cat Transaction category. If empty, defaults to "Other Income" or "Other Expense" based on isExpense.
      *            If the specified category does not exist in the system, it will be created automatically with no budget set.
      *            If category creation fails, the record will not be added and an error is returned.
+     * @note If this operation needs to update both categories and records, the controller uses
+     *       a best-effort rollback strategy: if either file save fails, it restores in-memory
+     *       state and attempts to write both files back to their pre-update state.
      * @return "SUCCESS: Record added (ID: N)" if category exists or was auto-created successfully.
      *         "SUCCESS: Record added (ID: N), Category '[cat]' auto-created." if a new category was created.
      *         "FAIL: [Error details]" if validation fails or category creation fails.
@@ -79,6 +84,8 @@ public:
      *         - grouped error details in the form: error message -> line number list.
      *         Returns "FAIL: ..." when no rows are imported successfully.
      * @note This method appends imported data to existing in-memory records without clearing them.
+     * @note When import changes both categories and records, the controller uses best-effort rollback
+     *       on save failure to restore pre-import state in memory and on disk.
      */
     std::string addRecordsByFile(std::string filePath);
 
@@ -93,6 +100,8 @@ public:
      * @param isExpense New transaction type: 1 for expense, 0 for income. Pass -1 to keep unchanged.
      * @param cat New category name. Pass empty string to keep unchanged.
      *            If a non-empty category does not exist, the controller attempts to auto-create it.
+     * @note If updating the record also changes category data, the controller uses best-effort rollback
+     *       so a save failure restores the pre-update state as far as possible.
      * @return "SUCCESS: Record ID #[id] is updated." if successful, "FAIL: [Error details]" otherwise.
      */
     std::string updateRecord(int recordId, std::string date = "", double amount = -1.0, int isExpense = -1, std::string cat = "");
@@ -100,7 +109,9 @@ public:
     /**
      * @brief Deletes a specific financial record by its ID.
      * @param id The unique identifier of the record.
-     * @return "SUCCESS: Record #[id] deleted." if successful, "FAIL: Record ID #[id] does not exist." otherwise.
+     * @return "SUCCESS: Record #[id] deleted." if successful,
+     *         "FAIL: Record ID #[id] does not exist." if the record is missing,
+     *         or "FAIL: ..." if persistence fails after deletion.
      */
     std::string removeRecord(int id);
 
@@ -130,16 +141,18 @@ public:
 
     /**
      * @brief Generates a comprehensive financial summary for a specified period.
-     * Calculates Total Income, Total Expense, Net Balance, and a detailed breakdown by category.
+     * Calculates total_income, total_expense, net_balance, and a detailed breakdown by category.
      * If no parameters are provided, it summarizes all historical data in the system.
      * @param start Optional start date in "YYYY-MM-DD" format. If empty, the summary starts from the earliest record.
      * @param end Optional end date in "YYYY-MM-DD" format. If empty, the summary goes up to the latest record.
      * @return std::map<std::string, double> A map containing:
-     *         - "Total Income": Sum of all income records in the period.
-     *         - "Total Expense": Sum of all expense records in the period.
-     *         - "Net Balance": Total Income minus Total Expense.
-     *         - "Category: [category_name]": Total amount for each category (e.g., "Category: Food", "Category: Rent", "Category: Other").
-     *         Returns an empty map and updates lastError if the date range is logically invalid or no records found.
+     *         - "total_income": Sum of all income records in the period.
+     *         - "total_expense": Sum of all expense records in the period.
+     *         - "net_balance": Total income minus total expense.
+     *         - "category:[category_name]": Total expense amount for each category
+     *           (e.g., "category:Food", "category:Rent").
+     *         Returns an empty map and updates lastError if the date range is logically invalid
+     *         or no records are found.
      */
     std::map<std::string, double> getPeriodSummary(std::string start = "", std::string end = "");
 
@@ -148,12 +161,12 @@ public:
      * Provides a detailed breakdown of spending habits. The filtering is cumulative based on optional parameters:
      * - Date range: Filters records within the specified date range.
      * - Transaction type: Can filter to income only, expense only, or both (default).
-     * - Category filter: When cat is "" (default), filters to that category. Otherwise filters to the specified category.
+     * - Category filter: When cat is "" (default), no category filter is applied. Otherwise filters to the specified category.
      * @param start Optional start date in "YYYY-MM-DD" format. Empty string means no lower bound.
      * @param end Optional end date in "YYYY-MM-DD" format. Empty string means no upper bound.
      * @param isExpense Optional transaction type filter. Defaults to -1 (no filter, returns both income and expense).
      *                   Use 0 for income only, 1 for expense only.
-     * @param cat The name of the category to filter (e.g., "Food", "Rent"). Defaults to "Other".
+     * @param cat Optional category filter (e.g., "Food", "Rent"). Empty string means all categories.
      * @return std::string A formatted summary message:
      *         - For isExpense=-1: "Total Income: $X.XX, Total Expense: $Y.YY, Balance: $Z.ZZ"
      *         - For isExpense=0: "Total Income: $X.XX"
@@ -180,23 +193,27 @@ public:
      * @param name The name of the category to be removed. Must exist in the system.
      * @note When a category is removed, all records previously associated with it are reassigned to
      *       the default category: "Other Expense" for expense records and "Other Income" for income records.
+     * @note Because this operation updates both category and record storage, the controller applies
+     *       best-effort rollback if either save step fails.
      * @return "SUCCESS: Category '[name]' removed." if successful, "FAIL: [Error details]" otherwise.
      */
     std::string removeCategory(std::string name);
 
     /**
      * @brief Updates an existing category's name, type, budget, and/or warning threshold.
-     *        At least one of newName, isExpense, newBudget, or newWarningThreshold must be provided to make a change.
+     *        At least one of newName, isExpense, budget, or warningThreshold must be provided to make a change.
      * @param oldName The current name of the category. Must exist in the system.
      * @param newName The new name for the category. Must be unique and non-empty. Defaults to "" (no change).
      * @param isExpense Category type update flag: 1 for expense, 0 for income, -1 for unchanged.
-     * @param newBudget The new budget for the category. Defaults to -1.0 (no change).
-     * @param newWarningThreshold The new warning threshold percentage for the category. Defaults to -1.0 (no change).
-     * @note Records previously associated with this category remain unchanged and automatically update their category reference
-     *       if the category name is modified.
+     * @param budget The new budget for the category. Defaults to -1.0 (no change).
+     * @param warningThreshold The new warning threshold percentage for the category. Defaults to -1.0 (no change).
+     * @note Records previously associated with this category are updated automatically to keep
+     *       their category reference and transaction type consistent with the modified category.
+     * @note If the update touches both category and record storage, the controller uses best-effort
+     *       rollback to restore pre-update state when a save step fails.
      * @return "SUCCESS: Category '[oldName]' updated..." if successful, "FAIL: [Error details]" otherwise.
      */
-    std::string updateCategory(std::string oldName, std::string newName = "", int isExpense = -1, double newBudget = -1.0, double newWarningThreshold = -1.0);
+    std::string updateCategory(std::string oldName, std::string newName = "", int isExpense = -1, double budget = -1.0, double warningThreshold = -1.0);
 
     /**
      * @brief Retrieves all categories currently in the system.
@@ -227,31 +244,33 @@ public:
      * @brief Computes category distribution within an optional date range.
      *
      * Each CategoryDistItem contains:
-     * - categoryName: Category label.
-     * - amount: Total amount accumulated for that category.
-     * - percentage: Share of the overall total represented by that category.
-     *
-     * The returned vector may also include one aggregate item representing the
-     * overall total, for use in summary or chart rendering.
+     * - category: Category label.
+     * - amount: Total expense accumulated for that category.
+     * - percentage: Share of the overall expense total represented by that category.
      *
      * @param start Optional start date in "YYYY-MM-DD" format. Empty string means no lower bound.
      * @param end Optional end date in "YYYY-MM-DD" format. Empty string means no upper bound.
-     * @return std::vector<CategoryDistItem> Distribution items for the filtered period.
+     * @return std::pair<double, std::vector<CategoryDistItem>>
+     *         first = total expense for the filtered period,
+     *         second = distribution items by category.
      */
-    std::vector<CategoryDistItem> getDistribution(std::string start = "", std::string end = "");
+    std::pair<double, std::vector<CategoryDistItem>> getExpenseDistribution(std::string start = "", std::string end = "");
 
     /**
-     * @brief Generates a monthly trend series for a category or for all records.
+     * @brief Generates a monthly trend series for expense or income records.
      *
-     * The returned map is aggregated by month. Keys use "YYYY-MM" and values are
-     * aggregated monthly amounts, suitable for monthly trend charts.
+     * The controller filters records by date range, category, and transaction type
+     * before passing them to the analyzer. The returned map is aggregated by month.
+     * Keys use "YYYY-MM" and values are the summed amounts for that month.
      *
      * @param start Optional start date in "YYYY-MM-DD" format. Empty string means no lower bound.
      * @param end Optional end date in "YYYY-MM-DD" format. Empty string means no upper bound.
+     * @param isExpense Transaction type selector. Use 1 for expense and 0 for income.
+     *                  Defaults to 1, so omitted calls return an expense trend.
      * @param cat Optional category filter. Empty string means all categories.
      * @return std::map<std::string, double> A month-to-amount mapping for the filtered records.
      */
-    std::map<std::string, double> getTrend(std::string start = "", std::string end = "", std::string cat = "");
+    std::map<std::string, double> getTrend(std::string start = "", std::string end = "", int isExpense = 1, std::string cat = "");
 
     /**
      * @brief Summarizes monthly income and expense amounts across a date range.
