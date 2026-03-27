@@ -15,7 +15,7 @@ void MenuSystem::run()
     {
         displayMainMenu();
 
-        std::cout << "\nPlease enter your choice (0-7): ";
+        std::cout << "\nPlease enter your choice (0-8): ";
         std::getline(std::cin, choice);
 
         if (choice == "0")
@@ -40,6 +40,7 @@ void MenuSystem::displayMainMenu()
     std::cout << "5. Delete a Record" << std::endl;
     std::cout << "6. Financial Summary (All-in-one)" << std::endl;
     std::cout << "7. Simple Total" << std::endl;
+    std::cout << "8. Add Category" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
@@ -73,6 +74,10 @@ void MenuSystem::handleCommand(std::string cmd)
     else if (cmd == "7")
     {
         handleSimpleTotal();
+    }
+    else if (cmd == "8")
+    {
+        handleAddCategory();
     }
     else
     {
@@ -335,6 +340,88 @@ void MenuSystem::handleFinancialSummary()
         }
     }
     std::cout << "-----------------------------------" << std::endl;
+}
+
+void MenuSystem::handleAddCategory() {
+    std::cout << "\n--- Add Category ---" << std::endl;
+
+    // 1. Category name (required)
+    std::string name = getValidatedInput("Enter category name: ");
+    // 2. Category type
+    std::cout << "Category type:\n"
+              << "  e - Expense\n"
+              << "  i - Income\n";
+
+    std::string typeStr;
+
+    while (true) {
+        typeStr = getValidatedInput("Enter type (e/i): ");
+        if (typeStr == "e" || typeStr == "E" || typeStr == "i" || typeStr == "I") {
+            break;
+        }
+
+        std::cout << "Invalid type. Please enter 'e' or 'i'." << std::endl;
+    }
+
+    bool isExpense = (typeStr == "e" || typeStr == "E");
+
+    // 3. Optional budget and warning threshold
+    std::cout << "Optional fields (press Enter to skip):" << std::endl;
+    std::string budgetStr = getValidatedInput("Enter budget (>= 0, optional): ", true);
+    std::string warningStr = getValidatedInput("Enter warning threshold (>= 0, optional): ", true);
+
+    double budget = -1.0;
+    double warningThreshold = -1.0;
+
+    if (!budgetStr.empty()) {
+        try
+        {
+            budget = std::stod(budgetStr);
+            if (budget < 0.0)
+            {
+                std::cout << "> Error: Budget must be >= 0." << std::endl;
+                return;
+            }
+        }
+        catch (...)
+        {
+            std::cout << "> Error: Invalid budget format." << std::endl;
+            return;
+        }
+    }
+
+    if (!warningStr.empty()) {
+        try
+        {
+            warningThreshold = std::stod(warningStr);
+            if (warningThreshold < 0.0)
+            {
+                std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
+                return;
+            }
+        }
+        catch (...)
+        {
+            std::cout << "> Error: Invalid warning threshold format." << std::endl;
+            return;
+        }
+    }
+
+    // UI-level friendly check before calling controller
+    if (budget < 0.0 && warningThreshold >= 0.0)
+    {
+        std::cout << "> Error: You set warning threshold but no budget." << std::endl;
+        return;
+    }
+
+    // 4. Call controller
+    std::string result = controller.addCategory(name, isExpense, budget, warningThreshold);
+    std::cout << "\n> " << result << std::endl;
+
+    if (!controller.getLastError().empty())
+    {
+        std::cout << "> Reason: " << controller.getLastError() << std::endl;
+    }
 }
 
 // Helpers

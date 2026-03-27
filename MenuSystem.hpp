@@ -12,7 +12,6 @@ private:
     void displayMainMenu();
     void handleCommand(std::string cmd);
 
-    // Record CRUD
     void handleAddRecord();
     void handleAddRecordByFile();
     void handleAddCategory();
@@ -22,11 +21,10 @@ private:
     void handleDeleteRecord();
     void handleReportGeneration();
     void handleFinancialSummary();
-    void displayMainMenu();
     void displayMessage(std::string msg);
 
     void renderRecordTable(const std::vector<Record> &records);
-    void renderDistribution(CategoryDistribution &distribution);
+    // void renderDistribution(CategoryDistribution &distribution);
     void renderTrend(std::map<std::string, double> &data);
     void renderIncomeExpense(std::map<std::string, std::pair<double, double>> &data);
 
