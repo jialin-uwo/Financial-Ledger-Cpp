@@ -40,7 +40,7 @@ void MenuSystem::displayMainMenu()
     std::cout << "5. Delete a Record" << std::endl;
     std::cout << "6. Financial Summary (All-in-one)" << std::endl;
     std::cout << "7. Simple Total" << std::endl;
-    std::cout << "8. Add Category" << std::endl;
+    std::cout << "8. Category Management" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
@@ -77,11 +77,11 @@ void MenuSystem::handleCommand(std::string cmd)
     }
     else if (cmd == "8")
     {
-        handleAddCategory();
+        handleCategoryManagement();
     }
     else
     {
-        std::cout << "Invalid Input! Please select a valid option (0-7)." << std::endl;
+        std::cout << "Invalid Input! Please select a valid option (0-8)." << std::endl;
     }
 }
 
@@ -342,6 +342,49 @@ void MenuSystem::handleFinancialSummary()
     std::cout << "-----------------------------------" << std::endl;
 }
 
+void MenuSystem::displayCategoryMenu() {
+    std::cout << "\n--- Category Management ---" << std::endl;
+    std::cout << "1. List Categories" << std::endl;
+    std::cout << "2. Add Category" << std::endl;
+    std::cout << "3. Update Category" << std::endl;
+    std::cout << "4. Delete Category" << std::endl;
+    std::cout << "0. Back to Main Menu" << std::endl;
+}
+
+void MenuSystem::handleCategoryManagement()
+{
+    while (true)
+    {
+        displayCategoryMenu();
+        std::string choice = getValidatedInput("Enter your choice (0-4): ");
+
+        if (choice == "0")
+        {
+            return;
+        }
+        else if (choice == "1")
+        {
+            handleListCategories();
+        }
+        else if (choice == "2")
+        {
+            handleAddCategory();
+        }
+        else if (choice == "3")
+        {
+            handleUpdateCategory();
+        }
+        else if (choice == "4")
+        {
+            handleDeleteCategory();
+        }
+        else
+        {
+            std::cout << "Invalid Input! Please select a valid option (0-4)." << std::endl;
+        }
+    }
+}
+
 void MenuSystem::handleAddCategory() {
     std::cout << "\n--- Add Category ---" << std::endl;
 
@@ -416,6 +459,127 @@ void MenuSystem::handleAddCategory() {
 
     // 4. Call controller
     std::string result = controller.addCategory(name, isExpense, budget, warningThreshold);
+    std::cout << "\n> " << result << std::endl;
+
+    if (!controller.getLastError().empty())
+    {
+        std::cout << "> Reason: " << controller.getLastError() << std::endl;
+    }
+}
+
+void MenuSystem::handleListCategories()
+{
+    std::cout << "\n--- Category List ---" << std::endl;
+
+    std::vector<Category> categories = controller.getCategories();
+    if (categories.empty()) {
+        std::cout << "> No categories found." << std::endl;
+        if (!controller.getLastError().empty()) {
+            std::cout << "> Reason: " << controller.getLastError() << std::endl;
+        }
+        return;
+    }
+
+    std::cout << std::fixed << std::setprecision(2);
+    for (const auto &cat : categories)
+    {
+        std::string type = cat.getIsExpense() ? "Expense" : "Income";
+        std::cout << "- Name: " << cat.getName()
+                  << " | Type: " << type;
+
+        if (cat.hasBudget()) {
+            std::cout << " | Budget: $" << cat.getBudget()
+                      << " | Warning: $" << cat.getWarningThreshold();
+        }
+        else {
+            std::cout << " | Budget: N/A | Warning: N/A";
+        }
+
+        std::cout << std::endl;
+    }
+}
+
+void MenuSystem::handleUpdateCategory()
+{
+    std::cout << "\n--- Update Category ---" << std::endl;
+
+    std::string oldName = getValidatedInput("Enter category name to update: ");
+
+    std::cout << "Press Enter to skip any field." << std::endl;
+    std::string newName = getValidatedInput("Enter new name (optional): ", true);
+
+    int isExpense = -1;
+    while (true) {
+        std::string typeStr = getValidatedInput("Enter new type (e/i, optional): ", true);
+        if (typeStr.empty()) {
+            break; // keep unchanged
+        }
+        if (typeStr == "e" || typeStr == "E") {
+            isExpense = 1;
+            break;
+        }
+        if (typeStr == "i" || typeStr == "I") {
+            isExpense = 0;
+            break;
+        }
+        std::cout << "Invalid type. Please enter e, i, or press Enter to skip." << std::endl;
+    }
+
+    double budget = -1.0;
+    std::string budgetStr = getValidatedInput("Enter new budget (>= 0, optional): ", true);
+    if (!budgetStr.empty())
+    {
+        try {
+            budget = std::stod(budgetStr);
+            if (budget < 0.0) {
+                std::cout << "> Error: Budget must be >= 0." << std::endl;
+                return;
+            }
+        }
+        catch (...) {
+            std::cout << "> Error: Invalid budget format." << std::endl;
+            return;
+        }
+    }
+
+    double warningThreshold = -1.0;
+    std::string warningStr = getValidatedInput("Enter new warning threshold (>= 0, optional): ", true);
+    if (!warningStr.empty()) {
+        try {
+            warningThreshold = std::stod(warningStr);
+            if (warningThreshold < 0.0) {
+                std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
+                return;
+            }
+        }
+        catch (...) {
+            std::cout << "> Error: Invalid warning threshold format." << std::endl;
+            return;
+        }
+    }
+
+    std::string result = controller.updateCategory(oldName, newName, isExpense, budget, warningThreshold);
+    std::cout << "\n> " << result << std::endl;
+
+    if (!controller.getLastError().empty()) {
+        std::cout << "> Reason: " << controller.getLastError() << std::endl;
+    }
+}
+
+void MenuSystem::handleDeleteCategory()
+{
+    std::cout << "\n--- Delete Category ---" << std::endl;
+
+    std::string name = getValidatedInput("Enter category name to delete: ");
+    std::string confirm = getValidatedInput("Are you sure? (y/n): ");
+
+    if (!(confirm == "y" || confirm == "Y"))
+    {
+        std::cout << "> Deletion cancelled." << std::endl;
+        return;
+    }
+
+    std::string result = controller.removeCategory(name);
     std::cout << "\n> " << result << std::endl;
 
     if (!controller.getLastError().empty())

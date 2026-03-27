@@ -14,7 +14,12 @@ private:
 
     void handleAddRecord();
     void handleAddRecordByFile();
+    void handleCategoryManagement();
+    void displayCategoryMenu();
     void handleAddCategory();
+    void handleListCategories();
+    void handleUpdateCategory();
+    void handleDeleteCategory();
     void handleSearchRecords();
     void handleSimpleTotal();
     void handleUpdateRecord();
