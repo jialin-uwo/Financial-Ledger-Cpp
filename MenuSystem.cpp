@@ -2,6 +2,12 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
+#include "BudgetStatus.h"
+#include "BudgetHealth.h"
+#include "LedgerController.hpp"
+#include "FinancialAnalyzer.h"
+#include "Record.h"
+#include <map>
 
 MenuSystem::MenuSystem(LedgerController &ctrl) : controller(ctrl) {}
 
@@ -15,7 +21,7 @@ void MenuSystem::run()
     {
         displayMainMenu();
 
-        std::cout << "\nPlease enter your choice (0-8): ";
+        std::cout << "\nPlease enter your choice (0-12): ";
         std::getline(std::cin, choice);
 
         if (choice == "0")
@@ -30,8 +36,7 @@ void MenuSystem::run()
     }
 }
 
-void MenuSystem::displayMainMenu()
-{
+void MenuSystem::displayMainMenu() {
     std::cout << "\n-----------------------------------" << std::endl;
     std::cout << "1. Add a New Record" << std::endl;
     std::cout << "2. Add Records by File (Batch Import)" << std::endl;
@@ -41,52 +46,61 @@ void MenuSystem::displayMainMenu()
     std::cout << "6. Financial Summary (All-in-one)" << std::endl;
     std::cout << "7. Simple Total" << std::endl;
     std::cout << "8. Category Management" << std::endl;
+    std::cout << "9. Current Budget Status" << std::endl;
+    std::cout << "10. Expense Distribution" << std::endl;
+    std::cout << "11. Trend Analysis" << std::endl;
+    std::cout << "12. Income vs Expense Comparison" << std::endl;
+    std::cout << "13. Visualize Records" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
 
-void MenuSystem::handleCommand(std::string cmd)
-{
-    if (cmd == "1")
-    {
+void MenuSystem::handleCommand(std::string cmd) {
+    if (cmd == "1") {
         handleAddRecord();
     }
-    else if (cmd == "2")
-    {
+    else if (cmd == "2") {
         handleAddRecordByFile();
     }
-    else if (cmd == "3")
-    {
+    else if (cmd == "3") {
         handleSearchRecords();
     }
-    else if (cmd == "4")
-    {
+    else if (cmd == "4") {
         handleUpdateRecord();
     }
-    else if (cmd == "5")
-    {
+    else if (cmd == "5") {
         handleDeleteRecord();
     }
-    else if (cmd == "6")
-    {
+    else if (cmd == "6") {
         handleFinancialSummary();
     }
-    else if (cmd == "7")
-    {
+    else if (cmd == "7") {
         handleSimpleTotal();
     }
-    else if (cmd == "8")
-    {
+    else if (cmd == "8") {
         handleCategoryManagement();
     }
-    else
-    {
+    else if (cmd == "9") {
+        handleCurrentBudgetStatus();
+    }
+    else if (cmd == "10") {
+        handleDistribution();
+    }
+    else if (cmd == "11") {
+        handleTrend();
+    }
+    else if (cmd == "12") {
+        handleIncomeExpense();
+    }
+    else if (cmd == "13") {
+        handleViewAllRecords();
+    }
+    else {
         std::cout << "Invalid Input! Please select a valid option (0-8)." << std::endl;
     }
 }
 
-void MenuSystem::exitMenu()
-{
+void MenuSystem::exitMenu() const {
     std::cout << "\nSaving your ledger data..." << std::endl;
     std::string result = controller.shutDown();
     std::cout << result << std::endl;
@@ -467,7 +481,7 @@ void MenuSystem::handleAddCategory() {
     }
 }
 
-void MenuSystem::handleListCategories()
+void MenuSystem::handleListCategories() const
 {
     std::cout << "\n--- Category List ---" << std::endl;
 
@@ -587,6 +601,328 @@ void MenuSystem::handleDeleteCategory()
         std::cout << "> Reason: " << controller.getLastError() << std::endl;
     }
 }
+
+void MenuSystem::handleCurrentBudgetStatus() const {
+    std::cout << "\n=== Budget Status Report ===\n";
+
+    std::vector<BudgetStatus> statuses = controller.getCurrentBudgetStatus();
+
+    if (statuses.empty()) {
+        std::cout << "No active budgets found or no expense categories exist.\n";
+        return;
+    }
+    renderBudgetStatus(statuses);
+}
+
+void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus>& statuses){
+    const std::string COLOR_RESET   = "\033[0m";
+    const std::string COLOR_GREEN   = "\033[32m";  // Safe
+    const std::string COLOR_YELLOW  = "\033[33m";  // Warning
+    const std::string COLOR_RED     = "\033[31m";  // Exceeded
+
+    std::cout << std::left
+              << std::setw(15) << "Category"
+              << std::setw(10) << "Health"
+              << std::setw(12) << "Budget"
+              << std::setw(12) << "Spent"
+              << std::setw(12) << "Remaining"
+              << "Daily Rec." << "\n";
+    std::cout << std::string(75, '-') << "\n";
+
+    for (const auto& status : statuses) {
+        std::string colorCode = COLOR_RESET;
+        std::string healthStr = "Unknown";
+
+        switch (status.budgetHealth) {
+            case BudgetHealth::Safe:
+                colorCode = COLOR_GREEN;
+                healthStr = "Safe";
+                break;
+            case BudgetHealth::Warning:
+                colorCode = COLOR_YELLOW;
+                healthStr = "Warning";
+                break;
+            case BudgetHealth::Exceeded:
+                colorCode = COLOR_RED;
+                healthStr = "Exceeded";
+                break;
+            case BudgetHealth::Unknown:
+            default:
+                colorCode = COLOR_RESET;
+                healthStr = "Unknown";
+                break;
+        }
+
+        std::cout << colorCode
+                  << std::left << std::setw(15) << status.categoryName
+                  << std::setw(10) << healthStr
+                  << "$" << std::setw(11) << std::fixed << std::setprecision(2) << status.budgetLimit
+                  << "$" << std::setw(11) << status.actualSpent
+                  << "$" << std::setw(11) << status.remaining;
+
+        if (status.dailyAvailable >= 0.0) {
+            std::cout << "$" << status.dailyAvailable << " (" << status.daysRemaining << " days left)";
+        } else {
+            std::cout << "N/A";
+        }
+
+        std::cout << COLOR_RESET << "\n";
+    }
+
+    std::cout << std::string(75, '-') << "\n";
+}
+
+void MenuSystem::handleDistribution() const {
+    std::cout << "\n=== Expense Distribution Analysis ===\n";
+
+    std::string start, end;
+
+    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, start);
+
+    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, end);
+
+    auto distribution = controller.getExpenseDistribution(start, end);
+
+    if (distribution.second.empty()) {
+        std::string error = controller.getLastError();
+        if (!error.empty()) {
+            std::cout << "Notice: " << error << "\n";
+        } else {
+            std::cout << "No expense records found for the specified period.\n";
+        }
+        return;
+    }
+
+    renderDistribution(distribution);
+}
+
+void MenuSystem::renderDistribution(const std::pair<double, std::vector<CategoryDistItem>>& distribution) {
+    double totalExpense = distribution.first;
+    const auto& items = distribution.second;
+
+    std::cout << "\nTotal Expense for period: $" << std::fixed << std::setprecision(2) << totalExpense << "\n";
+    std::cout << std::string(75, '-') << "\n";
+
+    std::cout << std::left
+              << std::setw(20) << "Category"
+              << std::setw(15) << "Amount"
+              << std::setw(10) << "Percent"
+              << "Visual Distribution\n";
+    std::cout << std::string(75, '-') << "\n";
+
+    for (const auto& item : items) {
+        int barLength = static_cast<int>((item.percentage / 100.0) * 25.0);
+        std::string bar(barLength, '#');
+
+        std::cout << std::left << std::setw(20) << item.category
+                  << "$" << std::setw(14) << item.amount
+                  << std::setw(6) << item.percentage << "%   "
+                  << "|" << bar << "\n";
+    }
+
+    std::cout << std::string(75, '-') << "\n";
+}
+
+void MenuSystem::handleTrend() const {
+    std::cout << "\n=== Trend Analysis ===\n";
+
+    std::string start, end, cat, typeStr;
+    int isExpense = -1;
+
+    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, start);
+
+    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, end);
+
+    std::cout << "Filter by type? (1 = Expense, 0 = Income, or leave blank for All): ";
+    std::getline(std::cin, typeStr);
+    if (!typeStr.empty()) {
+        try {
+            isExpense = std::stoi(typeStr);
+            if (isExpense != 0 && isExpense != 1) {
+                isExpense = -1;
+            }
+        } catch (...) {
+            isExpense = -1;
+        }
+    }
+
+    std::cout << "Enter category name or leave blank for all categories: ";
+    std::getline(std::cin, cat);
+
+    std::map<std::string, double> trendData = controller.getTrend(start, end, isExpense, cat);
+
+    if (trendData.empty()) {
+        std::string error = controller.getLastError();
+        if (!error.empty()) {
+            std::cout << "Notice: " << error << "\n";
+        } else {
+            std::cout << "No records found for the specified criteria.\n";
+        }
+        return;
+    }
+
+    renderTrend(trendData);
+}
+
+void MenuSystem::renderTrend(const std::map<std::string, double>& trendData) {
+    double maxAmount = 0.0;
+    for (const auto& pair : trendData) {
+        if (pair.second > maxAmount) {
+            maxAmount = pair.second;
+        }
+    }
+
+    std::cout << "\nTrend Report (Monthly)\n";
+    std::cout << std::string(60, '-') << "\n";
+    std::cout << std::left
+              << std::setw(12) << "Month"
+              << std::setw(15) << "Total Amount"
+              << "Trend\n";
+    std::cout << std::string(60, '-') << "\n";
+
+    for (const auto& pair : trendData) {
+        std::string month = pair.first;
+        double amount = pair.second;
+
+        int barLength = 0;
+        if (maxAmount > 0) {
+            barLength = static_cast<int>((amount / maxAmount) * 25.0);
+        }
+        std::string bar(barLength, '#');
+
+        std::cout << std::left << std::setw(12) << month
+                  << "$" << std::setw(14) << std::fixed << std::setprecision(2) << amount
+                  << "|" << bar << "\n";
+    }
+
+    std::cout << std::string(60, '-') << "\n";
+}
+
+void MenuSystem::handleIncomeExpense() const {
+    std::cout << "\n=== Income vs Expense Analysis ===\n";
+
+    std::string start, end;
+
+    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, start);
+
+    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+    std::getline(std::cin, end);
+
+    std::map<std::string, std::pair<double, double>> data = controller.getIncomeExpense(start, end);
+
+    if (data.empty()) {
+        std::string error = controller.getLastError();
+        if (!error.empty()) {
+            std::cout << "Notice: " << error << "\n";
+        } else {
+            std::cout << "No records found for the specified period.\n";
+        }
+        return;
+    }
+
+    renderIncomeExpense(data);
+}
+
+void MenuSystem::renderIncomeExpense(const std::map<std::string, std::pair<double, double>>& data) {
+    const std::string COLOR_RESET = "\033[0m";
+    const std::string COLOR_GREEN = "\033[32m"; // Positive balance
+    const std::string COLOR_RED   = "\033[31m"; // Negative balance
+
+    std::cout << "\nIncome vs Expense Report\n";
+    std::cout << std::string(60, '-') << "\n";
+    std::cout << std::left
+              << std::setw(12) << "Month"
+              << std::setw(15) << "Income"
+              << std::setw(15) << "Expense"
+              << "Net Balance\n";
+    std::cout << std::string(60, '-') << "\n";
+
+    double totalIncome = 0.0;
+    double totalExpense = 0.0;
+
+    for (const auto& pair : data) {
+        std::string month = pair.first;
+        double income = pair.second.first;
+        double expense = pair.second.second;
+        double balance = income - expense;
+
+        totalIncome += income;
+        totalExpense += expense;
+
+        std::string color = (balance >= 0) ? COLOR_GREEN : COLOR_RED;
+        std::string sign = (balance >= 0) ? "+$" : "-$";
+
+        std::cout << std::left << std::setw(12) << month
+                  << "$" << std::setw(14) << std::fixed << std::setprecision(2) << income
+                  << "$" << std::setw(14) << expense
+                  << color << sign << std::abs(balance) << COLOR_RESET << "\n";
+    }
+
+    std::cout << std::string(60, '-') << "\n";
+    double overallBalance = totalIncome - totalExpense;
+    std::string overallColor = (overallBalance >= 0) ? COLOR_GREEN : COLOR_RED;
+    std::string overallSign = (overallBalance >= 0) ? "+$" : "-$";
+
+    std::cout << std::left << std::setw(12) << "TOTAL"
+              << "$" << std::setw(14) << totalIncome
+              << "$" << std::setw(14) << totalExpense
+              << overallColor << overallSign << std::abs(overallBalance) << COLOR_RESET << "\n";
+    std::cout << std::string(60, '=') << "\n";
+}
+
+void MenuSystem::handleViewAllRecords() const {
+    std::cout << "\n=== All Transactions ===\n";
+
+    std::vector<Record> allRecords = controller.getRecords("", "", -1, "", 0.0);
+
+    renderRecordTable(allRecords);
+}
+
+void MenuSystem::renderRecordTable(const std::vector<Record> &records) {
+    if (records.empty()) {
+        std::cout << "No records to display.\n";
+        return;
+    }
+
+    const std::string COLOR_RESET = "\033[0m";
+    const std::string COLOR_GREEN = "\033[32m"; // income
+    const std::string COLOR_RED   = "\033[31m"; // expense
+
+    std::cout << "\n" << std::string(75, '=') << "\n";
+    std::cout << std::left
+              << std::setw(8)  << "ID"
+              << std::setw(14) << "Date"
+              << std::setw(20) << "Category"
+              << std::setw(12) << "Type"
+              << "Amount\n";
+    std::cout << std::string(75, '-') << "\n";
+
+    for (const auto& record : records) {
+        bool isExp = record.getIsExpense();
+        std::string typeStr = isExp ? "Expense" : "Income";
+        std::string color = isExp ? COLOR_RED : COLOR_GREEN;
+        std::string sign = isExp ? "-$" : "+$";
+
+        std::cout << std::left
+                  << std::setw(8)  << record.getId()
+                  << std::setw(14) << record.getDate()
+                  << std::setw(20) << record.getCategory()
+                  << std::setw(12) << typeStr
+                  << color << sign << std::fixed << std::setprecision(2) << record.getAmount()
+                  << COLOR_RESET << "\n";
+    }
+
+    std::cout << std::string(75, '=') << "\n";
+    std::cout << "Total records listed: " << records.size() << "\n";
+}
+
+
+
 
 // Helpers
 std::string MenuSystem::getValidatedInput(std::string prompt, bool allowEmpty)

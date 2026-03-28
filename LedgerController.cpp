@@ -875,7 +875,6 @@ std::map<std::string, double> LedgerController::getTrend(std::string start, std:
     this->lastError = "";
     return trend;
 }
-
 std::map<std::string, std::pair<double, double>> LedgerController::getIncomeExpense(std::string start, std::string end)
 {
     std::map<std::string, std::pair<double, double>> incomeExpenseMap;
