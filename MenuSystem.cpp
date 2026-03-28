@@ -21,7 +21,7 @@ void MenuSystem::run()
     {
         displayMainMenu();
 
-        std::cout << "\nPlease enter your choice (0-12): ";
+        std::cout << "\nPlease enter your choice (0-13): ";
         std::getline(std::cin, choice);
 
         if (choice == "0")
@@ -96,7 +96,7 @@ void MenuSystem::handleCommand(std::string cmd) {
         handleViewAllRecords();
     }
     else {
-        std::cout << "Invalid Input! Please select a valid option (0-8)." << std::endl;
+        std::cout << "Invalid Input! Please select a valid option (0-13)." << std::endl;
     }
 }
 
@@ -119,7 +119,9 @@ void MenuSystem::handleAddRecord()
 
     bool isExpense = (typeStr == "y" || typeStr == "Y");
 
-    std::string result = controller.addRecord(date, amount, isExpense, "");
+    std::string category = getValidatedInput("Enter category (optional, press Enter to auto-assign): ", true);
+
+    std::string result = controller.addRecord(date, amount, isExpense, category);
 
     std::cout << "\n> " << result << std::endl;
 }
@@ -132,23 +134,21 @@ void MenuSystem::handleAddRecordByFile()
 ====================================================
 
 [ 1. CSV FORMAT GUIDE ]
-    Format: id,date,amount,isExpense,category
-    Example: 1,2024-01-01,4150.11,true,Other Income
-             2,2024-01-02,22.22,false,Other Expense
+    Format: date,amount,isExpense,category
+    Example: 2024-01-01,4150.11,false,Salary
+             2024-01-02,22.22,true,Groceries
 
 [ 2. ABOUT THE 'isExpense' COLUMN ]
-    - You can use true/false(case-insensitive) or 1/0 
-    - If left blank or with an invalid value, the system will treat it as expense (true)
+    - Use true/false(case-insensitive) or 1/0
+    - true / 1 means expense; false / 0 means income
 
-[ 3. ABOUT THE 'ID' COLUMN ]
-    - Please fill the ID column with "1" for all rows; the system will auto-assign unique IDs
+[ 3. ABOUT THE 'Category' COLUMN ]
+    - Category can be left blank
+    - Blank category will auto-assign:
+      * "Other Income" (for income)
+      * "Other Expense" (for expense)
 
-[ 4. SMART CATEGORIZATION ]
-    If the 'Category' field is empty, the system will automatically assign:
-    - "Other Income"   (for income)
-    - "Other Expense"  (for expense)
-
-[ 5. SYSTEM REQUIREMENTS ]
+[ 4. SYSTEM REQUIREMENTS ]
     - Date format: YYYY-MM-DD
     - File format: .csv (Comma Separated)
 
@@ -195,10 +195,13 @@ void MenuSystem::handleSearchRecords()
         isExpense = 0; // Income only
     }
 
-    // Step 4: Get minimum amount (optional)
+    // Step 4: Optional category filter
+    std::string category = getValidatedInput("Enter Category (optional, press Enter for all categories): ", true);
+
+    // Step 5: Get minimum amount (optional)
     double minAmount = getValidatedAmount(true);
 
-    std::vector<Record> results = controller.getRecords(start, end, isExpense, "", minAmount);
+    std::vector<Record> results = controller.getRecords(start, end, isExpense, category, minAmount);
 
     if (results.empty())
     {
@@ -216,6 +219,7 @@ void MenuSystem::handleSearchRecords()
         {
             std::string type = rec.getIsExpense() ? "[Expense]" : "[Income ]";
             std::cout << "ID: " << rec.getId() << " | Date: " << rec.getDate()
+                      << " | Category: " << rec.getCategory()
                       << " | " << type << " | Amount: $" << rec.getAmount() << std::endl;
         }
     }
@@ -249,8 +253,10 @@ void MenuSystem::handleSimpleTotal()
         isExpense = 0; // Income only
     }
 
+    std::string category = getValidatedInput("Enter Category (optional, press Enter for all categories): ", true);
+
     // Call controller with all filters
-    std::string result = controller.getTotal(start, end, isExpense, "");
+    std::string result = controller.getTotal(start, end, isExpense, category);
     std::cout << "\n> " << result << std::endl;
 }
 
@@ -277,7 +283,9 @@ void MenuSystem::handleUpdateRecord()
     std::string typeStr = getValidatedInput("Is it an expense? (y/n): ");
     bool isExpense = (typeStr == "y" || typeStr == "Y");
 
-    std::string result = controller.updateRecord(id, date, amount, isExpense, "");
+    std::string category = getValidatedInput("Enter new category (optional, press Enter to keep current): ", true);
+
+    std::string result = controller.updateRecord(id, date, amount, isExpense, category);
     std::cout << "\n> " << result << std::endl;
 }
 
@@ -355,6 +363,9 @@ void MenuSystem::handleFinancialSummary()
     }
     std::cout << "-----------------------------------" << std::endl;
 }
+
+
+
 
 void MenuSystem::displayCategoryMenu() {
     std::cout << "\n--- Category Management ---" << std::endl;
@@ -602,6 +613,8 @@ void MenuSystem::handleDeleteCategory()
     }
 }
 
+
+
 void MenuSystem::handleCurrentBudgetStatus() const {
     std::cout << "\n=== Budget Status Report ===\n";
 
@@ -676,12 +689,20 @@ void MenuSystem::handleDistribution() const {
     std::cout << "\n=== Expense Distribution Analysis ===\n";
 
     std::string start, end;
+    while (true)
+    {
+        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        start = getValidatedDate();
+        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        end = getValidatedDate();
 
-    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, start);
-
-    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, end);
+        if (!start.empty() && !end.empty() && start > end)
+        {
+            std::cout << "Start date cannot be later than end date. Please re-enter.\n";
+            continue;
+        }
+        break;
+    }
 
     auto distribution = controller.getExpenseDistribution(start, end);
 
@@ -731,11 +752,20 @@ void MenuSystem::handleTrend() const {
     std::string start, end, cat, typeStr;
     int isExpense = -1;
 
-    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, start);
+    while (true)
+    {
+        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        start = getValidatedDate();
+        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        end = getValidatedDate();
 
-    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, end);
+        if (!start.empty() && !end.empty() && start > end)
+        {
+            std::cout << "Start date cannot be later than end date. Please re-enter.\n";
+            continue;
+        }
+        break;
+    }
 
     std::cout << "Filter by type? (1 = Expense, 0 = Income, or leave blank for All): ";
     std::getline(std::cin, typeStr);
@@ -807,11 +837,20 @@ void MenuSystem::handleIncomeExpense() const {
 
     std::string start, end;
 
-    std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, start);
+    while (true)
+    {
+        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        start = getValidatedDate();
+        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        end = getValidatedDate();
 
-    std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
-    std::getline(std::cin, end);
+        if (!start.empty() && !end.empty() && start > end)
+        {
+            std::cout << "Start date cannot be later than end date. Please re-enter.\n";
+            continue;
+        }
+        break;
+    }
 
     std::map<std::string, std::pair<double, double>> data = controller.getIncomeExpense(start, end);
 
@@ -935,12 +974,10 @@ std::string MenuSystem::getValidatedInput(std::string prompt, bool allowEmpty)
 
         if (input.empty())
         {
-            if (allowEmpty)
-            {
+            if (allowEmpty) {
                 return "";
             }
-            else
-            {
+            else {
                 std::cout << "Input cannot be empty. Please try again." << std::endl;
                 continue;
             }
@@ -985,4 +1022,55 @@ double MenuSystem::getValidatedAmount(bool allowEmpty)
     }
 
     return amount;
+}
+
+std::string MenuSystem::getValidatedDate() const
+{
+    std::vector<Record> allRecords = controller.getRecords("", "", -1, "", 0.0);
+
+    std::string minDate;
+    std::string maxDate;
+    if (!allRecords.empty())
+    {
+        minDate = allRecords.front().getDate();
+        maxDate = allRecords.front().getDate();
+        for (const auto &rec : allRecords)
+        {
+            if (rec.getDate() < minDate)
+            {
+                minDate = rec.getDate();
+            }
+            if (rec.getDate() > maxDate)
+            {
+                maxDate = rec.getDate();
+            }
+        }
+    }
+
+    while (true)
+    {
+        std::string input;
+        std::getline(std::cin, input);
+
+        if (input.empty()) {
+            return "";
+        }
+
+        std::string error;
+        if (!Record::validateData(input, 1.0, error))
+        {
+            std::cout << "Invalid date: " << error << std::endl;
+            std::cout << "Please enter date again (YYYY-MM-DD), or press Enter to skip: ";
+            continue;
+        }
+
+        if (!allRecords.empty() && (input < minDate || input > maxDate))
+        {
+            std::cout << "Date must be within existing data range [" << minDate << " to " << maxDate << "]." << std::endl;
+            std::cout << "Please enter date again (YYYY-MM-DD), or press Enter to skip: ";
+            continue;
+        }
+
+        return input;
+    }
 }

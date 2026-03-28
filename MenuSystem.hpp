@@ -40,6 +40,7 @@ private:
     // Helpers
     std::string getValidatedInput(std::string prompt, bool allowEmpty = false);
     double getValidatedAmount(bool allowEmpty = false);
+    std::string getValidatedDate() const;
 
     void exitMenu() const;
 
