@@ -9,33 +9,40 @@ class MenuSystem
 private:
     LedgerController &controller;
 
-    void displayMainMenu();
+    static void displayMainMenu();
     void handleCommand(std::string cmd);
 
-    // Record CRUD
     void handleAddRecord();
     void handleAddRecordByFile();
+    void handleCategoryManagement();
+    static void displayCategoryMenu();
     void handleAddCategory();
+    void handleListCategories() const;
+    void handleUpdateCategory();
+    void handleDeleteCategory();
     void handleSearchRecords();
     void handleSimpleTotal();
     void handleUpdateRecord();
     void handleDeleteRecord();
-    void handleReportGeneration();
     void handleFinancialSummary();
-    void displayMainMenu();
-    void displayMessage(std::string msg);
 
-    void renderRecordTable(const std::vector<Record> &records);
-    void renderDistribution(CategoryDistribution &distribution);
-    void renderTrend(std::map<std::string, double> &data);
-    void renderIncomeExpense(std::map<std::string, std::pair<double, double>> &data);
+    void handleCurrentBudgetStatus() const;
+    static void renderBudgetStatus(const std::vector<BudgetStatus>& statuses);
+    void handleDistribution() const;
+    static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>>& distribution);
+    void handleTrend() const;
+    static void renderTrend(const std::map<std::string, double>& trendData);
+    void handleIncomeExpense() const;
+    static void renderIncomeExpense(const std::map<std::string, std::pair<double, double>>& data);
+    void handleViewAllRecords() const;
+    static void renderRecordTable(const std::vector<Record> &records);
 
     // Helpers
     std::string getValidatedInput(std::string prompt, bool allowEmpty = false);
     double getValidatedAmount(bool allowEmpty = false);
-    std::string getValidatedDate();
+    std::string getValidatedDate() const;
 
-    void exitMenu();
+    void exitMenu() const;
 
 public:
     // Constructor: accepts a LedgerController reference
