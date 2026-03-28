@@ -39,7 +39,7 @@ id,date,amount,isExpense,category
 38,2024-01-21,322,1,Other Expense
 39,2024-01-21,650,1,Other Expense
 40,2024-01-22,180,1,Other Expense
-41,2024-01-22,15,1,Other Expense
+41,2024-01-01,4150,0,Other Income
 42,2024-01-22,90,1,Other Expense
 43,2024-01-23,22,1,Other Expense
 44,2024-01-24,75,1,Other Expense
