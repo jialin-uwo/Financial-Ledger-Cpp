@@ -8,6 +8,68 @@
 #include "FinancialAnalyzer.h"
 #include "Record.h"
 #include <map>
+#include <cstdlib> // getenv
+#include <cstdio>  // popen, pclose
+
+namespace {
+    std::string detectGnuplotExecutable() {
+        const char* candidates[] = {
+            "/opt/homebrew/bin/gnuplot", // Apple Silicon Homebrew default
+            "/usr/local/bin/gnuplot",    // Intel Homebrew default
+            "gnuplot"                    // PATH fallback
+        };
+
+        char buffer[64];
+        for (const char* candidate : candidates) {
+            std::string cmd = std::string(candidate) + " --version 2>/dev/null";
+            FILE* pipe = popen(cmd.c_str(), "r");
+            if (!pipe) {
+                continue;
+            }
+
+            bool hasOutput = (fgets(buffer, sizeof(buffer), pipe) != nullptr);
+            int status = pclose(pipe);
+            if (status == 0 && hasOutput) {
+                return candidate;
+            }
+        }
+
+        return "";
+    }
+
+    const std::string& getGnuplotExecutable() {
+        static const std::string executable = detectGnuplotExecutable();
+        return executable;
+    }
+
+    FILE* openGnuplotPipe() {
+        const std::string& executable = getGnuplotExecutable();
+        if (executable.empty()) {
+            return nullptr;
+        }
+
+        const std::string command = executable + " -persist";
+        return popen(command.c_str(), "w");
+    }
+
+    bool shouldUseGnuplot() {
+        const char* mode = std::getenv("LEDGER_PLOT_MODE");
+        std::string modeStr = mode ? mode : "auto";
+
+        if (modeStr == "ascii") {
+            return false;
+        }
+
+        if (!getGnuplotExecutable().empty()) {
+            return true;
+        }
+
+        if (modeStr == "gnuplot") {
+            std::cout << "\n[Warning] LEDGER_PLOT_MODE is set to 'gnuplot', but gnuplot is not found. Falling back to ASCII.\n";
+        }
+        return false;
+    }
+}
 
 MenuSystem::MenuSystem(LedgerController &ctrl) : controller(ctrl) {}
 
@@ -21,7 +83,7 @@ void MenuSystem::run()
     {
         displayMainMenu();
 
-        std::cout << "\nPlease enter your choice (0-13): ";
+        std::cout << "\nPlease enter your choice (0-4): ";
         std::getline(std::cin, choice);
 
         if (choice == "0")
@@ -38,65 +100,29 @@ void MenuSystem::run()
 
 void MenuSystem::displayMainMenu() {
     std::cout << "\n-----------------------------------" << std::endl;
-    std::cout << "1. Add a New Record" << std::endl;
-    std::cout << "2. Add Records by File (Batch Import)" << std::endl;
-    std::cout << "3. View/Search Records" << std::endl;
-    std::cout << "4. Update a Record" << std::endl;
-    std::cout << "5. Delete a Record" << std::endl;
-    std::cout << "6. Financial Summary (All-in-one)" << std::endl;
-    std::cout << "7. Simple Total" << std::endl;
-    std::cout << "8. Category Management" << std::endl;
-    std::cout << "9. Current Budget Status" << std::endl;
-    std::cout << "10. Expense Distribution" << std::endl;
-    std::cout << "11. Trend Analysis" << std::endl;
-    std::cout << "12. Income vs Expense Comparison" << std::endl;
-    std::cout << "13. Visualize Records" << std::endl;
+    std::cout << "1. View/Search Records" << std::endl;
+    std::cout << "2. Record Management (Add, Import, Update, Delete)" << std::endl;
+    std::cout << "3. Financial Analytics & Reports" << std::endl;
+    std::cout << "4. Category Management" << std::endl;
     std::cout << "0. Exit and Save" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 }
 
 void MenuSystem::handleCommand(std::string cmd) {
     if (cmd == "1") {
-        handleAddRecord();
-    }
-    else if (cmd == "2") {
-        handleAddRecordByFile();
-    }
-    else if (cmd == "3") {
         handleSearchRecords();
     }
+    else if (cmd == "2") {
+        handleRecordManagement();
+    }
+    else if (cmd == "3") {
+        handleReportManagement();
+    }
     else if (cmd == "4") {
-        handleUpdateRecord();
-    }
-    else if (cmd == "5") {
-        handleDeleteRecord();
-    }
-    else if (cmd == "6") {
-        handleFinancialSummary();
-    }
-    else if (cmd == "7") {
-        handleSimpleTotal();
-    }
-    else if (cmd == "8") {
         handleCategoryManagement();
     }
-    else if (cmd == "9") {
-        handleCurrentBudgetStatus();
-    }
-    else if (cmd == "10") {
-        handleDistribution();
-    }
-    else if (cmd == "11") {
-        handleTrend();
-    }
-    else if (cmd == "12") {
-        handleIncomeExpense();
-    }
-    else if (cmd == "13") {
-        handleViewAllRecords();
-    }
     else {
-        std::cout << "Invalid Input! Please select a valid option (0-13)." << std::endl;
+        std::cout << "Invalid Input! Please select a valid option (0-4)." << std::endl;
     }
 }
 
@@ -106,6 +132,88 @@ void MenuSystem::exitMenu() const {
     std::cout << result << std::endl;
     std::cout << "See you next time!" << std::endl;
 }
+
+
+
+void MenuSystem::displayRecordMenu() {
+    std::cout << "\n--- Record Management ---" << std::endl;
+    std::cout << "1. Add a New Record" << std::endl;
+    std::cout << "2. Add Records by File (Batch Import)" << std::endl;
+    std::cout << "3. Update a Record" << std::endl;
+    std::cout << "4. Delete a Record" << std::endl;
+    std::cout << "0. Back to Main Menu" << std::endl;
+}
+
+void MenuSystem::handleRecordManagement() {
+    while (true) {
+        displayRecordMenu();
+        std::string choice = getValidatedInput("Enter your choice (0-4): ");
+
+        if (choice == "0") {
+            return;
+        }
+        else if (choice == "1") {
+            handleAddRecord();
+        }
+        else if (choice == "2") {
+            handleAddRecordByFile();
+        }
+        else if (choice == "3") {
+            handleUpdateRecord();
+        }
+        else if (choice == "4") {
+            handleDeleteRecord();
+        }
+        else {
+            std::cout << "Invalid Input! Please select a valid option (0-4)." << std::endl;
+        }
+    }
+}
+
+void MenuSystem::displayReportMenu() {
+    std::cout << "\n--- Financial Analytics & Reports ---" << std::endl;
+    std::cout << "1. Financial Summary (All-in-one)" << std::endl;
+    std::cout << "2. Simple Total" << std::endl;
+    std::cout << "3. Current Budget Status" << std::endl;
+    std::cout << "4. Expense Distribution" << std::endl;
+    std::cout << "5. Trend Analysis" << std::endl;
+    std::cout << "6. Income vs Expense Comparison" << std::endl;
+    std::cout << "0. Back to Main Menu" << std::endl;
+}
+
+void MenuSystem::handleReportManagement() {
+    while (true) {
+        displayReportMenu();
+        std::string choice = getValidatedInput("Enter your choice (0-6): ");
+
+        if (choice == "0") {
+            return;
+        }
+        else if (choice == "1") {
+            handleFinancialSummary();
+        }
+        else if (choice == "2") {
+            handleSimpleTotal();
+        }
+        else if (choice == "3") {
+            handleCurrentBudgetStatus();
+        }
+        else if (choice == "4") {
+            handleDistribution();
+        }
+        else if (choice == "5") {
+            handleTrend();
+        }
+        else if (choice == "6") {
+            handleIncomeExpense();
+        }
+        else {
+            std::cout << "Invalid Input! Please select a valid option (0-6)." << std::endl;
+        }
+    }
+}
+
+
 
 void MenuSystem::handleAddRecord()
 {
@@ -213,15 +321,7 @@ void MenuSystem::handleSearchRecords()
     }
     else
     {
-        std::cout << "\n--- Found " << results.size() << " Records ---" << std::endl;
-        std::cout << std::fixed << std::setprecision(2);
-        for (const auto &rec : results)
-        {
-            std::string type = rec.getIsExpense() ? "[Expense]" : "[Income ]";
-            std::cout << "ID: " << rec.getId() << " | Date: " << rec.getDate()
-                      << " | Category: " << rec.getCategory()
-                      << " | " << type << " | Amount: $" << rec.getAmount() << std::endl;
-        }
+        renderRecordTable(results);
     }
 }
 
@@ -435,8 +535,8 @@ void MenuSystem::handleAddCategory() {
 
     // 3. Optional budget and warning threshold
     std::cout << "Optional fields (press Enter to skip):" << std::endl;
-    std::string budgetStr = getValidatedInput("Enter budget (>= 0, optional): ", true);
-    std::string warningStr = getValidatedInput("Enter warning threshold (>= 0, optional): ", true);
+    std::string budgetStr = getValidatedInput("Enter budget for this category (>= 0, optional): ", true);
+    std::string warningStr = getValidatedInput("Enter warning threshold that can trigger an alarm (Default value: 70% of budget)(>= 0, optional): ", true);
 
     double budget = -1.0;
     double warningThreshold = -1.0;
@@ -551,7 +651,7 @@ void MenuSystem::handleUpdateCategory()
     }
 
     double budget = -1.0;
-    std::string budgetStr = getValidatedInput("Enter new budget (>= 0, optional): ", true);
+    std::string budgetStr = getValidatedInput("Enter new budget for this category (Default value: 70% of budget)(>= 0, optional): ", true);
     if (!budgetStr.empty())
     {
         try {
@@ -568,7 +668,7 @@ void MenuSystem::handleUpdateCategory()
     }
 
     double warningThreshold = -1.0;
-    std::string warningStr = getValidatedInput("Enter new warning threshold (>= 0, optional): ", true);
+    std::string warningStr = getValidatedInput("Enter new warning threshold that can trigger an alarm (>= 0, optional): ", true);
     if (!warningStr.empty()) {
         try {
             warningThreshold = std::stod(warningStr);
@@ -726,6 +826,31 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
     std::cout << "\nTotal Expense for period: $" << std::fixed << std::setprecision(2) << totalExpense << "\n";
     std::cout << std::string(75, '-') << "\n";
 
+    // --- Gnuplot Rendering Branch ---
+    if (shouldUseGnuplot()) {
+        FILE* pipe = openGnuplotPipe();
+        if (pipe) {
+            fprintf(pipe, "set title 'Expense Distribution'\n");
+            fprintf(pipe, "set style data histograms\n");
+            fprintf(pipe, "set style fill solid 0.5 border -1\n");
+            fprintf(pipe, "set boxwidth 0.7\n");
+            fprintf(pipe, "set xtics rotate by -45\n");
+            fprintf(pipe, "set ylabel 'Amount ($)'\n");
+
+            fprintf(pipe, "plot '-' using 2:xtic(1) title 'Expense by Category' linecolor rgb '#4169E1'\n");
+            for (const auto& item : items) {
+                fprintf(pipe, "\"%s\" %f\n", item.category.c_str(), item.amount);
+            }
+            fprintf(pipe, "e\n");
+            pclose(pipe);
+
+            std::cout << ">> Chart opened in external gnuplot window.\n";
+            std::cout << std::string(75, '-') << "\n";
+            return;
+        }
+    }
+
+    // --- ASCII Rollback Rendering Branch ---
     std::cout << std::left
               << std::setw(20) << "Category"
               << std::setw(15) << "Amount"
@@ -742,7 +867,6 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                   << std::setw(6) << item.percentage << "%   "
                   << "|" << bar << "\n";
     }
-
     std::cout << std::string(75, '-') << "\n";
 }
 
@@ -801,11 +925,32 @@ void MenuSystem::handleTrend() const {
 void MenuSystem::renderTrend(const std::map<std::string, double>& trendData) {
     double maxAmount = 0.0;
     for (const auto& pair : trendData) {
-        if (pair.second > maxAmount) {
-            maxAmount = pair.second;
+        if (pair.second > maxAmount) maxAmount = pair.second;
+    }
+
+    // --- Gnuplot Rendering Branch ---
+    if (shouldUseGnuplot()) {
+        FILE* pipe = openGnuplotPipe();
+        if (pipe) {
+            fprintf(pipe, "set title 'Monthly Trend Analysis'\n");
+            fprintf(pipe, "set style data linespoints\n");
+            fprintf(pipe, "set xtics rotate by -45\n");
+            fprintf(pipe, "set grid\n");
+            fprintf(pipe, "set ylabel 'Amount ($)'\n");
+
+            fprintf(pipe, "plot '-' using 0:2:xtic(1) with linespoints title 'Trend' lw 2 pt 7\n");
+            for (const auto& pair : trendData) {
+                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second);
+            }
+            fprintf(pipe, "e\n");
+            pclose(pipe);
+
+            std::cout << "\n>> Trend chart opened in external gnuplot window.\n";
+            return;
         }
     }
 
+    // --- ASCII Rollback Rendering Branch ---
     std::cout << "\nTrend Report (Monthly)\n";
     std::cout << std::string(60, '-') << "\n";
     std::cout << std::left
@@ -828,7 +973,6 @@ void MenuSystem::renderTrend(const std::map<std::string, double>& trendData) {
                   << "$" << std::setw(14) << std::fixed << std::setprecision(2) << amount
                   << "|" << bar << "\n";
     }
-
     std::cout << std::string(60, '-') << "\n";
 }
 
@@ -868,9 +1012,41 @@ void MenuSystem::handleIncomeExpense() const {
 }
 
 void MenuSystem::renderIncomeExpense(const std::map<std::string, std::pair<double, double>>& data) {
+    // --- Gnuplot Rendering Branch ---
+    if (shouldUseGnuplot()) {
+        FILE* pipe = openGnuplotPipe();
+        if (pipe) {
+            fprintf(pipe, "set title 'Income vs Expense Comparison'\n");
+            fprintf(pipe, "set style data histograms\n");
+            fprintf(pipe, "set style histogram clustered gap 1\n");
+            fprintf(pipe, "set style fill solid 0.7 border -1\n");
+            fprintf(pipe, "set xtics rotate by -45\n");
+            fprintf(pipe, "set grid y\n");
+            fprintf(pipe, "set ylabel 'Amount ($)'\n");
+
+            fprintf(pipe, "plot '-' using 2:xtic(1) title 'Income' linecolor rgb '#228B22', \\\n");
+            fprintf(pipe, "     '-' using 2 title 'Expense' linecolor rgb '#B22222'\n");
+
+            for (const auto& pair : data) {
+                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second.first);
+            }
+            fprintf(pipe, "e\n");
+
+            for (const auto& pair : data) {
+                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second.second);
+            }
+            fprintf(pipe, "e\n");
+            pclose(pipe);
+
+            std::cout << "\n>> Income vs Expense chart opened in external gnuplot window.\n";
+            return;
+        }
+    }
+
+    // --- ASCII Rollback Rendering Branch ---
     const std::string COLOR_RESET = "\033[0m";
-    const std::string COLOR_GREEN = "\033[32m"; // Positive balance
-    const std::string COLOR_RED   = "\033[31m"; // Negative balance
+    const std::string COLOR_GREEN = "\033[32m";
+    const std::string COLOR_RED   = "\033[31m";
 
     std::cout << "\nIncome vs Expense Report\n";
     std::cout << std::string(60, '-') << "\n";
@@ -914,13 +1090,7 @@ void MenuSystem::renderIncomeExpense(const std::map<std::string, std::pair<doubl
     std::cout << std::string(60, '=') << "\n";
 }
 
-void MenuSystem::handleViewAllRecords() const {
-    std::cout << "\n=== All Transactions ===\n";
 
-    std::vector<Record> allRecords = controller.getRecords("", "", -1, "", 0.0);
-
-    renderRecordTable(allRecords);
-}
 
 void MenuSystem::renderRecordTable(const std::vector<Record> &records) {
     if (records.empty()) {
