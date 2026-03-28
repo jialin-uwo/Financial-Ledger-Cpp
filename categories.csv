@@ -1,0 +1,6 @@
+name,isExpense,budget,warningThreshold
+Other Income,0,-1,-1
+Food,1,-1,-1
+Transport,1,-1,-1
+Shopping,1,-1,-1
+Other Expense,1,-1,-1
