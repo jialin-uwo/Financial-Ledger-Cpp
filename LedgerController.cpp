@@ -14,43 +14,32 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include "Result.h"
 
 namespace
 {
-    std::string trimValue(const std::string &value)
-    {
-        size_t start = value.find_first_not_of(" \t\n\r");
-        if (start == std::string::npos)
-        {
-            return "";
-        }
-
-        size_t end = value.find_last_not_of(" \t\n\r");
-        return value.substr(start, end - start + 1);
-    }
-
-    std::string defaultCategoryName(bool isExpense)
-    {
-        return isExpense ? "Other Expense" : "Other Income";
-    }
-
-    std::string normalizeCategoryInput(const std::string &category, bool isExpense)
-    {
-        std::string normalized = trimValue(category);
-        if (normalized.empty() || normalized == "other" || normalized == "Other")
-        {
-            return defaultCategoryName(isExpense);
-        }
-
-        return normalized;
-    }
-
     bool hasFilterValidationError(const std::string &message)
     {
         return message == "Invalid date range: Start date cannot be after end date." ||
                message == "Invalid isExpense value. Use -1 (all), 0 (income), or 1 (expense).";
     }
+}
 
+// --- static helpers moved into LedgerController ---
+
+std::string LedgerController::defaultCategoryName(bool isExpense)
+{
+    return isExpense ? "Other Expense" : "Other Income";
+}
+
+std::string LedgerController::normalizeCategoryInput(const std::string &category, bool isExpense)
+{
+    std::string normalized = trim(category);
+    if (normalized.empty() || normalized == "other" || normalized == "Other")
+    {
+        return defaultCategoryName(isExpense);
+    }
+    return normalized;
 }
 
 LedgerController::LedgerController()
@@ -68,7 +57,7 @@ LedgerController::~LedgerController()
     // No need to delete analyzer or dataAccess as they are member objects, not pointers
 }
 
-std::string LedgerController::init()
+Result LedgerController::init()
 {
     // 0. Load categories from persistent storage
     this->categories = dataAccess.loadCategories();
@@ -96,7 +85,7 @@ std::string LedgerController::init()
         if (!dataAccess.saveRecords(this->records))
         {
             this->lastError = "Failed to save normalized records during initialization.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
         }
     }
 
@@ -105,33 +94,33 @@ std::string LedgerController::init()
     {
         this->lastError = "";
         // This could be a new user (empty file) or a potential error
-        return "System initialized. No existing records found. Loaded " +
-               std::to_string(this->categories.size()) + " categories.";
+        return Result(StatusCode::SUCCESS, "System initialized. No existing records found. Loaded " +
+                                               std::to_string(this->categories.size()) + " categories.");
     }
     else
     {
         this->lastError = "";
         // Success case: show how many records were processed
-        return "System initialized. Successfully loaded " +
-               std::to_string(this->records.size()) + " records. Loaded " +
-               std::to_string(this->categories.size()) + " categories.";
+        return Result(StatusCode::SUCCESS, "System initialized. Successfully loaded " +
+                                               std::to_string(this->records.size()) + " records. Loaded " +
+                                               std::to_string(this->categories.size()) + " categories.");
     }
 }
 
-std::string LedgerController::shutDown()
+Result LedgerController::shutDown()
 {
     // Attempt to save current records to CSV
     if (!dataAccess.saveRecords(this->records))
     {
         this->lastError = "Failed to save records during shutdown.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     this->lastError = "";
-    return "Data successfully saved. System shutting down.";
+    return Result(StatusCode::SUCCESS, "Data successfully saved. System shutting down.");
 }
 
-std::string LedgerController::addRecord(std::string date, double amount, bool isExpense, std::string cat)
+Result LedgerController::addRecord(std::string date, double amount, bool isExpense, std::string cat)
 {
     std::string errorMsg;
 
@@ -139,7 +128,7 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
     if (!Record::validateData(date, amount, errorMsg))
     {
         this->lastError = errorMsg;
-        return "FAIL: " + errorMsg;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + errorMsg);
     }
 
     const std::string normalizedCategory = normalizeCategoryInput(cat, isExpense);
@@ -150,7 +139,7 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
     if (!categoryWasCreated && categoryIt->getIsExpense() != isExpense)
     {
         this->lastError = "Category '" + normalizedCategory + "' type does not match the record type.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
     const std::vector<Category> originalCategories = this->categories;
@@ -169,7 +158,7 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
         this->records.pop_back();
         this->categories = originalCategories;
         this->lastError = "Failed to save categories.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     if (!dataAccess.saveRecords(this->records))
@@ -181,7 +170,7 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
             dataAccess.saveCategories(this->categories);
         }
         this->lastError = "Failed to save records.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     this->nextRecordId++;
@@ -194,10 +183,10 @@ std::string LedgerController::addRecord(std::string date, double amount, bool is
     }
     successMsg += ".";
     this->lastError = "";
-    return successMsg;
+    return Result(StatusCode::SUCCESS, successMsg);
 }
 
-std::string LedgerController::addRecordsByFile(std::string filePath)
+Result LedgerController::addRecordsByFile(std::string filePath)
 {
     LoadReport report;
     std::vector<Record> importedRecords = dataAccess.loadRecordsWithoutId(filePath, report);
@@ -241,7 +230,7 @@ std::string LedgerController::addRecordsByFile(std::string filePath)
         this->categories = originalCategories;
         this->nextRecordId = originalNextRecordId;
         this->lastError = "Failed to save categories.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     if (acceptedCount > 0 && !dataAccess.saveRecords(this->records))
@@ -254,7 +243,7 @@ std::string LedgerController::addRecordsByFile(std::string filePath)
             dataAccess.saveCategories(this->categories);
         }
         this->lastError = "Failed to save records.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     std::ostringstream oss;
@@ -283,14 +272,14 @@ std::string LedgerController::addRecordsByFile(std::string filePath)
     if (!report.hasSuccesses())
     {
         this->lastError = oss.str();
-        return "FAIL: " + oss.str();
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + oss.str());
     }
 
     this->lastError = "";
-    return "SUCCESS: " + oss.str();
+    return Result(StatusCode::SUCCESS, "SUCCESS: " + oss.str());
 }
 
-std::string LedgerController::updateRecord(int recordId, std::string date, double amount, int isExpense, std::string cat)
+Result LedgerController::updateRecord(int recordId, std::string date, double amount, int isExpense, std::string cat)
 {
     for (auto &rec : this->records)
     {
@@ -302,13 +291,13 @@ std::string LedgerController::updateRecord(int recordId, std::string date, doubl
         if (date.empty() && amount == -1.0 && isExpense == -1 && cat.empty())
         {
             this->lastError = "At least one field must be provided for update.";
-            return "FAIL: At least one field must be provided for update.";
+            return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
         }
 
         if (isExpense != -1 && isExpense != 0 && isExpense != 1)
         {
             this->lastError = "Invalid isExpense value. Use -1 (unchanged), 0 (income), or 1 (expense).";
-            return "FAIL: Invalid isExpense value. Use -1 (unchanged), 0 (income), or 1 (expense).";
+            return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
         }
 
         const std::string effectiveDate = date.empty() ? rec.getDate() : date;
@@ -330,7 +319,7 @@ std::string LedgerController::updateRecord(int recordId, std::string date, doubl
         if (!Record::validateData(effectiveDate, effectiveAmount, errorMsg))
         {
             this->lastError = errorMsg;
-            return "FAIL: " + errorMsg;
+            return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + errorMsg);
         }
 
         auto categoryIt = std::find_if(this->categories.begin(), this->categories.end(), [&](const Category &category)
@@ -340,7 +329,7 @@ std::string LedgerController::updateRecord(int recordId, std::string date, doubl
         if (!shouldCreateCategory && categoryIt->getIsExpense() != effectiveIsExpense)
         {
             this->lastError = "Category '" + effectiveCategory + "' type does not match the record type.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
         }
 
         const Record originalRecord = rec;
@@ -374,7 +363,7 @@ std::string LedgerController::updateRecord(int recordId, std::string date, doubl
             rec = originalRecord;
             this->categories = originalCategories;
             this->lastError = "Failed to save categories.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
         }
 
         if (!this->dataAccess.saveRecords(this->records))
@@ -386,24 +375,24 @@ std::string LedgerController::updateRecord(int recordId, std::string date, doubl
                 this->dataAccess.saveCategories(this->categories);
             }
             this->lastError = "Failed to save records.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
         }
 
         this->lastError = "";
         std::ostringstream amountStream;
         amountStream << std::fixed << std::setprecision(2) << rec.getAmount();
-        return "SUCCESS: Record ID #" + std::to_string(recordId) +
-               " updated to Date: " + rec.getDate() +
-               ", Amount: $" + amountStream.str() +
-               ", Expense: " + (rec.getIsExpense() ? "Yes" : "No") +
-               ", Category: " + rec.getCategory() + ".";
+        return Result(StatusCode::SUCCESS, "SUCCESS: Record ID #" + std::to_string(recordId) +
+                                               " updated to Date: " + rec.getDate() +
+                                               ", Amount: $" + amountStream.str() +
+                                               ", Expense: " + (rec.getIsExpense() ? "Yes" : "No") +
+                                               ", Category: " + rec.getCategory() + ".");
     }
 
     this->lastError = "Record ID #" + std::to_string(recordId) + " does not exist.";
-    return "FAIL: Record ID #" + std::to_string(recordId) + " does not exist.";
+    return Result(StatusCode::NOT_FOUND, "FAIL: Record ID #" + std::to_string(recordId) + " does not exist.");
 }
 
-std::string LedgerController::removeRecord(int id)
+Result LedgerController::removeRecord(int id)
 {
     for (auto it = records.begin(); it != records.end(); ++it)
     {
@@ -417,20 +406,27 @@ std::string LedgerController::removeRecord(int id)
             {
                 this->records.insert(this->records.begin() + removedIndex, removedRecord);
                 this->lastError = "Failed to save records after record deletion.";
-                return "FAIL: " + this->lastError;
+                return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
             }
 
             this->lastError = "";
-            return "SUCCESS: Record #" + std::to_string(id) + " deleted.";
+            return Result(StatusCode::SUCCESS, "SUCCESS: Record #" + std::to_string(id) + " deleted.");
         }
     }
     this->lastError = "Record ID #" + std::to_string(id) + " does not exist.";
-    return "FAIL: Record ID #" + std::to_string(id) + " does not exist.";
+    return Result(StatusCode::NOT_FOUND, "FAIL: Record ID #" + std::to_string(id) + " does not exist.");
 }
 
-std::string LedgerController::getLastError()
+Result LedgerController::getLastError()
 {
-    return this->lastError;
+    if (this->lastError.empty())
+    {
+        return Result(StatusCode::SUCCESS, "");
+    }
+    else
+    {
+        return Result(StatusCode::UNKNOWN, this->lastError);
+    }
 }
 
 std::string LedgerController::trim(const std::string &value)
@@ -512,14 +508,14 @@ std::map<std::string, double> LedgerController::getPeriodSummary(std::string sta
     return summary;
 }
 
-std::string LedgerController::getTotal(std::string start, std::string end, int isExpense, std::string cat)
+Result LedgerController::getTotal(std::string start, std::string end, int isExpense, std::string cat)
 {
 
     if (!start.empty() && !end.empty() && start > end)
     {
         this->lastError = "Invalid date range: Start date cannot be after end date.";
 
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
     std::vector<Record> filteredRecords = getRecords(start, end, isExpense, cat); // Reuse filtering logic for consistency
@@ -528,11 +524,11 @@ std::string LedgerController::getTotal(std::string start, std::string end, int i
     {
         if (hasFilterValidationError(this->lastError))
         {
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
         }
 
         this->lastError = "No records found for the specified category and period.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::NOT_FOUND, "FAIL: " + this->lastError);
     }
 
     auto summary = this->analyzer.calculateSummary(filteredRecords);
@@ -559,16 +555,22 @@ std::string LedgerController::getTotal(std::string start, std::string end, int i
     }
 
     this->lastError = "";
-    return buffer;
+    return Result(StatusCode::SUCCESS, buffer);
 }
 
-std::string LedgerController::addCategory(std::string name, bool isExpense, double budget, double warningThreshold)
+Result LedgerController::addCategory(std::string name, bool isExpense, double budget, double warningThreshold)
 {
+    // 收入类别不允许设置预算和预警线
+    if (!isExpense && (budget >= 0.0 || warningThreshold >= 0.0))
+    {
+        this->lastError = "Income category cannot have budget or warning threshold.";
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
+    }
     std::string errorMsg;
     if (!Category::valid(name, budget, warningThreshold, errorMsg))
     {
         this->lastError = errorMsg;
-        return "FAIL: " + errorMsg;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + errorMsg);
     }
 
     const std::string normalizedName = trim(name);
@@ -579,7 +581,7 @@ std::string LedgerController::addCategory(std::string name, bool isExpense, doub
         if (trim(category.getName()) == normalizedName)
         {
             this->lastError = "Category '" + normalizedName + "' already exists.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::DUPLICATE, "FAIL: " + this->lastError);
         }
     }
 
@@ -589,14 +591,14 @@ std::string LedgerController::addCategory(std::string name, bool isExpense, doub
     {
         this->categories.pop_back();
         this->lastError = "Failed to save categories.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     this->lastError = "";
-    return "SUCCESS: Category '" + normalizedName + "' added successfully.";
+    return Result(StatusCode::SUCCESS, "SUCCESS: Category '" + normalizedName + "' added successfully.");
 }
 
-std::string LedgerController::removeCategory(std::string name)
+Result LedgerController::removeCategory(std::string name)
 {
     const std::string normalizedName = trim(name);
 
@@ -607,7 +609,7 @@ std::string LedgerController::removeCategory(std::string name)
     if (it == this->categories.end())
     {
         this->lastError = "Category '" + normalizedName + "' not found.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::NOT_FOUND, "FAIL: " + this->lastError);
     }
 
     const std::vector<Category> originalCategories = this->categories;
@@ -660,7 +662,7 @@ std::string LedgerController::removeCategory(std::string name)
         this->categories = originalCategories;
         this->records = originalRecords;
         this->lastError = "Failed to save categories.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     if (!dataAccess.saveRecords(this->records))
@@ -669,14 +671,14 @@ std::string LedgerController::removeCategory(std::string name)
         this->records = originalRecords;
         dataAccess.saveCategories(this->categories);
         this->lastError = "Failed to save records after category removal.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     this->lastError = "";
-    return "SUCCESS: Category '" + normalizedName + "' removed successfully.";
+    return Result(StatusCode::SUCCESS, "SUCCESS: Category '" + normalizedName + "' removed successfully.");
 }
 
-std::string LedgerController::updateCategory(std::string oldName, std::string newName, int isExpense, double budget, double warningThreshold)
+Result LedgerController::updateCategory(std::string oldName, std::string newName, int isExpense, double budget, double warningThreshold)
 
 {
     const std::string normalizedOldName = trim(oldName);
@@ -688,25 +690,31 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
     if (it == this->categories.end())
     {
         this->lastError = "Category '" + normalizedOldName + "' not found.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::NOT_FOUND, "FAIL: " + this->lastError);
     }
 
     if (newName.empty() && isExpense == -1 && budget == -1.0 && warningThreshold == -1.0)
     {
         this->lastError = "At least one field must be provided for update.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
     if (isExpense != -1 && isExpense != 0 && isExpense != 1)
     {
         this->lastError = "Invalid isExpense value. Use -1 (unchanged), 0 (income), or 1 (expense).";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
     const std::string effectiveName = newName.empty() ? trim(it->getName()) : trim(newName);
     const bool effectiveIsExpense = (isExpense == -1) ? it->getIsExpense() : (isExpense == 1);
     const double effectiveBudget = (budget == -1.0) ? it->getBudget() : budget;
     const double effectiveWarningThreshold = (warningThreshold == -1.0) ? it->getWarningThreshold() : warningThreshold;
+    // 收入类别不允许设置预算和预警线
+    if (!effectiveIsExpense && (effectiveBudget >= 0.0 || effectiveWarningThreshold >= 0.0))
+    {
+        this->lastError = "Income category cannot have budget or warning threshold.";
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
+    }
     const bool shouldRenameRecords = effectiveName != trim(it->getName());
     const bool shouldRetypeRecords = effectiveIsExpense != it->getIsExpense();
     const bool shouldSyncRecords = shouldRenameRecords || shouldRetypeRecords;
@@ -715,7 +723,7 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
     if (!Category::valid(effectiveName, effectiveBudget, effectiveWarningThreshold, errorMsg))
     {
         this->lastError = errorMsg;
-        return "FAIL: " + errorMsg;
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + errorMsg);
     }
 
     for (auto categoryIt = this->categories.begin(); categoryIt != this->categories.end(); ++categoryIt)
@@ -723,7 +731,7 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
         if (categoryIt != it && trim(categoryIt->getName()) == effectiveName)
         {
             this->lastError = "Category '" + effectiveName + "' already exists.";
-            return "FAIL: " + this->lastError;
+            return Result(StatusCode::DUPLICATE, "FAIL: " + this->lastError);
         }
     }
 
@@ -771,7 +779,7 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
         *it = originalCategory;
         this->records = originalRecords;
         this->lastError = "Failed to save categories.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     if (shouldSyncRecords && !dataAccess.saveRecords(this->records))
@@ -780,7 +788,7 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
         this->records = originalRecords;
         dataAccess.saveCategories(this->categories);
         this->lastError = "Failed to save records after category update.";
-        return "FAIL: " + this->lastError;
+        return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
     }
 
     this->lastError = "";
@@ -788,11 +796,11 @@ std::string LedgerController::updateCategory(std::string oldName, std::string ne
     budgetStream << std::fixed << std::setprecision(2) << it->getBudget();
     std::ostringstream thresholdStream;
     thresholdStream << std::fixed << std::setprecision(2) << it->getWarningThreshold();
-    return "SUCCESS: Category '" + normalizedOldName +
-           "' updated successfully to '" + trim(it->getName()) +
-           "' (Expense: " + (it->getIsExpense() ? "Yes" : "No") +
-           ", Budget: $" + budgetStream.str() +
-           ", Warning Threshold: $" + thresholdStream.str() + ").";
+    return Result(StatusCode::SUCCESS, "SUCCESS: Category '" + normalizedOldName +
+                                           "' updated successfully to '" + trim(it->getName()) +
+                                           "' (Expense: " + (it->getIsExpense() ? "Yes" : "No") +
+                                           ", Budget: $" + budgetStream.str() +
+                                           ", Warning Threshold: $" + thresholdStream.str() + ").");
 }
 
 std::vector<Category> LedgerController::getCategories()
@@ -893,4 +901,14 @@ std::map<std::string, std::pair<double, double>> LedgerController::getIncomeExpe
     incomeExpenseMap = this->analyzer.analyzeIncomeExpense(filteredRecords);
     this->lastError = "";
     return incomeExpenseMap;
+}
+
+Record LedgerController::getRecordById(int id)
+{
+    for (const auto &rec : this->records)
+    {
+        if (rec.getId() == id)
+            return rec;
+    }
+    return Record(-1, "", 0.0, true, "");
 }
