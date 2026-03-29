@@ -3,13 +3,12 @@
 #include <map>
 #include <string>
 #include <utility>
-using namespace std;
 
 class Record;
 
 struct CategoryDistItem
 {
-    string category;
+    std::string category;
     double amount;
     double percentage;
 };
@@ -17,11 +16,8 @@ struct CategoryDistItem
 class FinancialAnalyzer
 {
 public:
-    map<string, double> calculateSummary(const vector<Record> &records);
-
-    vector<CategoryDistItem> analyzeDistribution(const vector<Record> &records);
-
-    map<string, double> analyzeTrend(const vector<Record> &records);
-
-    map<string, pair<double, double>> analyzeIncomeExpense(const vector<Record> &records);
+    std::map<std::string, double> calculateSummary(const std::vector<Record> &records);
+    std::vector<CategoryDistItem> analyzeDistribution(const std::vector<Record> &records);
+    std::map<std::string, double> analyzeTrend(const std::vector<Record> &records);
+    std::map<std::string, std::pair<double, double>> analyzeIncomeExpense(const std::vector<Record> &records);
 };

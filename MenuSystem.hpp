@@ -21,23 +21,24 @@ private:
     static void displayCategoryMenu();
     void handleCategoryManagement();
     void handleAddCategory();
-    void handleListCategories() const;
+    void handleListCategories();
     void handleUpdateCategory();
     void handleDeleteCategory();
     void handleSearchRecords();
+    void handleSearchRecordById();
     void handleSimpleTotal();
     void handleUpdateRecord();
     void handleDeleteRecord();
     void handleFinancialSummary();
 
-    void handleCurrentBudgetStatus() const;
-    static void renderBudgetStatus(const std::vector<BudgetStatus>& statuses);
-    void handleDistribution() const;
-    static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>>& distribution);
+    void handleCurrentBudgetStatus();
+    static void renderBudgetStatus(const std::vector<BudgetStatus> &statuses);
+    void handleDistribution();
+    static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>> &distribution);
     void handleTrend() const;
-    static void renderTrend(const std::map<std::string, double>& trendData);
+    static void renderTrend(const std::map<std::string, double> &trendData);
     void handleIncomeExpense() const;
-    static void renderIncomeExpense(const std::map<std::string, std::pair<double, double>>& data);
+    static void renderIncomeExpense(const std::map<std::string, std::pair<double, double>> &data);
     static void renderRecordTable(const std::vector<Record> &records);
 
     // Helpers

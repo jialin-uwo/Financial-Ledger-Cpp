@@ -16,6 +16,7 @@
 #include "Record.h"
 #include "FinancialAnalyzer.h"
 #include "DataAccess.h"
+#include "Result.h"
 
 class LedgerController
 {
@@ -28,6 +29,8 @@ private:
     int nextRecordId;                 ///< Tracks the next available unique identifier
 
     static std::string trim(const std::string &value);
+    static std::string normalizeCategoryInput(const std::string &category, bool isExpense);
+    static std::string defaultCategoryName(bool isExpense);
 
 public:
     /**
@@ -49,13 +52,13 @@ public:
      * - "System initialized. Successfully loaded [N] records. Loaded [M] categories." : Normal case where data exists and has been loaded.
      * @note The UI should call this immediately after construction.
      */
-    std::string init();
+    Result init();
 
     /**
      * @brief Saves data and closes the file stream.
      * @return std::string Status of the shutdown. Returns "FAIL: ..." if record persistence fails.
      */
-    std::string shutDown();
+    Result shutDown();
 
     /**
      * @brief Validates and adds a new record to the collection.
@@ -72,7 +75,7 @@ public:
      *         "SUCCESS: Record added (ID: N), Category '[cat]' auto-created." if a new category was created.
      *         "FAIL: [Error details]" if validation fails or category creation fails.
      */
-    std::string addRecord(std::string date, double amount, bool isExpense, std::string cat = "");
+    Result addRecord(std::string date, double amount, bool isExpense, std::string cat = "");
 
     /**
      * @brief Batch imports financial records and returns detailed loading report.
@@ -87,7 +90,7 @@ public:
      * @note When import changes both categories and records, the controller uses best-effort rollback
      *       on save failure to restore pre-import state in memory and on disk.
      */
-    std::string addRecordsByFile(std::string filePath);
+    Result addRecordsByFile(std::string filePath);
 
     /**
      * @brief Partially updates fields of an existing financial record.
@@ -104,7 +107,7 @@ public:
      *       so a save failure restores the pre-update state as far as possible.
      * @return "SUCCESS: Record ID #[id] is updated." if successful, "FAIL: [Error details]" otherwise.
      */
-    std::string updateRecord(int recordId, std::string date = "", double amount = -1.0, int isExpense = -1, std::string cat = "");
+    Result updateRecord(int recordId, std::string date = "", double amount = -1.0, int isExpense = -1, std::string cat = "");
 
     /**
      * @brief Deletes a specific financial record by its ID.
@@ -113,13 +116,13 @@ public:
      *         "FAIL: Record ID #[id] does not exist." if the record is missing,
      *         or "FAIL: ..." if persistence fails after deletion.
      */
-    std::string removeRecord(int id);
+    Result removeRecord(int id);
 
     /**
      * @brief Retrieves the last error message recorded by the controller.
      * @return std::string The error description; returns an empty string if the last operation succeeded.
      */
-    std::string getLastError();
+    Result getLastError();
 
     /**
      * @brief Fetches a list of records based on cumulative filters.
@@ -173,7 +176,7 @@ public:
      *         - For isExpense=1: "Total Expense: $X.XX"
      *         Returns error message if no records match the criteria.
      */
-    std::string getTotal(std::string start = "", std::string end = "", int isExpense = -1, std::string cat = "");
+    Result getTotal(std::string start = "", std::string end = "", int isExpense = -1, std::string cat = "");
 
     /**
      * @brief Adds a new category to the system with optional budget and warning threshold.
@@ -186,7 +189,7 @@ public:
      * @return "SUCCESS: Category '[name]' added..." if successful, "FAIL: [Error details]" otherwise.
      *         Error cases include: duplicate name, empty name, invalid threshold without budget.
      */
-    std::string addCategory(std::string name, bool isExpense = true, double budget = -1.0, double warningThreshold = -1.0);
+    Result addCategory(std::string name, bool isExpense = true, double budget = -1.0, double warningThreshold = -1.0);
 
     /**
      * @brief Removes an existing category from the system.
@@ -197,7 +200,7 @@ public:
      *       best-effort rollback if either save step fails.
      * @return "SUCCESS: Category '[name]' removed." if successful, "FAIL: [Error details]" otherwise.
      */
-    std::string removeCategory(std::string name);
+    Result removeCategory(std::string name);
 
     /**
      * @brief Updates an existing category's name, type, budget, and/or warning threshold.
@@ -213,7 +216,7 @@ public:
      *       rollback to restore pre-update state when a save step fails.
      * @return "SUCCESS: Category '[oldName]' updated..." if successful, "FAIL: [Error details]" otherwise.
      */
-    std::string updateCategory(std::string oldName, std::string newName = "", int isExpense = -1, double budget = -1.0, double warningThreshold = -1.0);
+    Result updateCategory(std::string oldName, std::string newName = "", int isExpense = -1, double budget = -1.0, double warningThreshold = -1.0);
 
     /**
      * @brief Retrieves all categories currently in the system.
@@ -283,6 +286,13 @@ public:
      * @return std::map<std::string, std::pair<double, double>> Monthly income and expense totals.
      */
     std::map<std::string, std::pair<double, double>> getIncomeExpense(std::string start = "", std::string end = "");
+
+    /**
+     * Find a record by its unique ID.
+     * @param id The unique identifier of the record to search for.
+     * @return The matching Record if found, otherwise a Record with id = -1.
+     */
+    Record getRecordById(int id);
 };
 
-#endif // LEDGERCONTROLLER_H
+#endif // LEDGERCONTController_H

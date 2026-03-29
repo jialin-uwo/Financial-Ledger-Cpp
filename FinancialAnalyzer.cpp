@@ -6,14 +6,12 @@
 #include <utility>
 #include <vector>
 
-using namespace std;
-
 static double roundToTwoDecimals(double value)
 {
     return std::round(value * 100.0) / 100.0;
 }
 
-static string extractMonthKey(const string &date)
+static std::string extractMonthKey(const std::string &date)
 {
     if (date.size() >= 7)
     {
@@ -22,9 +20,9 @@ static string extractMonthKey(const string &date)
     return "Unknown";
 }
 
-map<string, double> FinancialAnalyzer::calculateSummary(const vector<Record> &records)
+std::map<std::string, double> FinancialAnalyzer::calculateSummary(const std::vector<Record> &records)
 {
-    map<string, double> summary;
+    std::map<std::string, double> summary;
 
     double totalIncome = 0.0;
     double totalExpense = 0.0;
@@ -41,6 +39,7 @@ map<string, double> FinancialAnalyzer::calculateSummary(const vector<Record> &re
         else
         {
             totalIncome += amount;
+            summary["income_category:" + record.getCategory()] += amount;
         }
     }
 
@@ -56,9 +55,9 @@ map<string, double> FinancialAnalyzer::calculateSummary(const vector<Record> &re
     return summary;
 }
 
-vector<CategoryDistItem> FinancialAnalyzer::analyzeDistribution(const vector<Record> &records)
+std::vector<CategoryDistItem> FinancialAnalyzer::analyzeDistribution(const std::vector<Record> &records)
 {
-    map<string, double> expenseByCategory;
+    std::map<std::string, double> expenseByCategory;
     double totalExpense = 0.0;
 
     for (const Record &record : records)
@@ -70,7 +69,7 @@ vector<CategoryDistItem> FinancialAnalyzer::analyzeDistribution(const vector<Rec
         }
     }
 
-    vector<CategoryDistItem> result;
+    std::vector<CategoryDistItem> result;
 
     for (const auto &entry : expenseByCategory)
     {
@@ -93,13 +92,13 @@ vector<CategoryDistItem> FinancialAnalyzer::analyzeDistribution(const vector<Rec
     return result;
 }
 
-map<string, double> FinancialAnalyzer::analyzeTrend(const vector<Record> &records)
+std::map<std::string, double> FinancialAnalyzer::analyzeTrend(const std::vector<Record> &records)
 {
-    map<string, double> monthlyTotals;
+    std::map<std::string, double> monthlyTotals;
 
     for (const Record &record : records)
     {
-        string month = extractMonthKey(record.getDate());
+        std::string month = extractMonthKey(record.getDate());
         monthlyTotals[month] += record.getAmount();
     }
 
@@ -111,13 +110,13 @@ map<string, double> FinancialAnalyzer::analyzeTrend(const vector<Record> &record
     return monthlyTotals;
 }
 
-map<string, pair<double, double>> FinancialAnalyzer::analyzeIncomeExpense(const vector<Record> &records)
+std::map<std::string, std::pair<double, double>> FinancialAnalyzer::analyzeIncomeExpense(const std::vector<Record> &records)
 {
-    map<string, pair<double, double>> monthlyData;
+    std::map<std::string, std::pair<double, double>> monthlyData;
 
     for (const Record &record : records)
     {
-        string month = extractMonthKey(record.getDate());
+        std::string month = extractMonthKey(record.getDate());
 
         if (record.getIsExpense())
         {

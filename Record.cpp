@@ -49,8 +49,13 @@ Record::Record(int id,
                double amount,
                bool isExpense,
                const std::string &category)
-    : id(id), date(date), amount(amount), isExpense(isExpense)
+    : id(id), isExpense(isExpense)
 {
+    std::string err;
+    if (!Record::validateData(date, amount, err))
+        throw std::invalid_argument("Record ctor: " + err);
+    this->date = date;
+    this->amount = amount;
     setCategory(category);
 }
 

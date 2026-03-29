@@ -2,7 +2,8 @@
 #include "LedgerController.hpp"
 #include "MenuSystem.hpp"
 
-int main() {
+int main()
+{
     // 1. Instantiate the core controller
     LedgerController controller;
 
@@ -11,7 +12,13 @@ int main() {
 
     // 3. Start system initialization (loading CSV files, etc.)
     std::cout << "Initializing system..." << std::endl;
-    std::cout << controller.init() << std::endl;
+    Result initResult = controller.init();
+    std::cout << initResult.message << std::endl;
+    if (!initResult.ok())
+    {
+        std::cerr << "Initialization failed: " << initResult.message << std::endl;
+        return 1;
+    }
 
     // 4. Enter the main UI loop
     menu.run();

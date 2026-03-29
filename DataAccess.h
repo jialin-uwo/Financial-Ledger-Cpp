@@ -7,8 +7,6 @@
 #include "Record.h"
 #include "Category.h"
 
-using namespace std;
-
 /**
  * @struct LoadReport
  * @brief Stores the summary of one CSV loading operation.
@@ -23,8 +21,8 @@ struct LoadReport
     int processedRows = 0;
     int successRows = 0;
     int errorRows = 0;
-    map<string, vector<int>> errorsByMessage;
-    vector<int> successLineNumbers;
+    std::map<std::string, std::vector<int>> errorsByMessage;
+    std::vector<int> successLineNumbers;
 
     /** @brief Records one processed input row. */
     void addProcessedRow()
@@ -56,7 +54,7 @@ struct LoadReport
      * @param message The error message.
      * @param lineNumber The original CSV line number.
      */
-    void addError(const string &message, int lineNumber)
+    void addError(const std::string &message, int lineNumber)
     {
         errorRows++;
         errorsByMessage[message].push_back(lineNumber);
@@ -95,12 +93,12 @@ private:
     /**
      * @brief Default CSV file path for transaction records.
      */
-    const string RECORD_FILE = "records.csv";
+    const std::string RECORD_FILE = "records.csv";
 
     /**
      * @brief Default CSV file path for categories.
      */
-    const string CATEGORY_FILE = "categories.csv";
+    const std::string CATEGORY_FILE = "categories.csv";
 
 public:
     /**
@@ -116,7 +114,7 @@ public:
      *
      * @return A list of successfully loaded categories.
      */
-    vector<Category> loadCategories();
+    std::vector<Category> loadCategories();
 
     /**
      * @brief Loads records from the default record storage file, where each row already contains an ID.
@@ -128,7 +126,7 @@ public:
      *
      * @return A list of successfully loaded records.
      */
-    vector<Record> loadRecordsWithId();
+    std::vector<Record> loadRecordsWithId();
 
     /**
      * @brief Loads records from an external CSV file without an ID column.
@@ -143,7 +141,7 @@ public:
      * @param report Output report that stores row-level statistics and errors.
      * @return A list of successfully loaded records.
      */
-    vector<Record> loadRecordsWithoutId(const string &path, LoadReport &report);
+    std::vector<Record> loadRecordsWithoutId(const std::string &path, LoadReport &report);
 
     /**
      * @brief Saves records to a CSV file.
@@ -155,7 +153,7 @@ public:
      * @param path Optional custom output path. If empty, the default file is used.
      * @return True if saving succeeds; otherwise false.
      */
-    bool saveRecords(const vector<Record> &data, string path = "");
+    bool saveRecords(const std::vector<Record> &data, std::string path = "");
 
     /**
      * @brief Saves categories to a CSV file.
@@ -167,7 +165,7 @@ public:
      * @param path Optional custom output path. If empty, the default file is used.
      * @return True if saving succeeds; otherwise false.
      */
-    bool saveCategories(const vector<Category> &data, string path = "");
+    bool saveCategories(const std::vector<Category> &data, std::string path = "");
 };
 
 #endif
