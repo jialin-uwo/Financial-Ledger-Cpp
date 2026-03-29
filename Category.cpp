@@ -10,6 +10,7 @@
  */
 
 #include "Category.h"
+#include <regex>
 
 #include <cmath>
 #include <cstdio>
@@ -28,16 +29,35 @@
  * @param budget The budget limit for this category.
  * @param warningThreshold The warning threshold for this category.
  */
+
 Category::Category(const std::string &name,
                    bool isExpense,
                    double budget,
                    double warningThreshold)
-    : name(name), isExpense(isExpense), budget(budget), warningThreshold(warningThreshold)
+    : isExpense(isExpense), budget(budget), warningThreshold(warningThreshold)
 {
-    if (this->budget >= 0.0 && this->warningThreshold == -1.0)
+    // name: non-empty, <=32 chars, only [A-Za-z0-9 _-]
+    auto trim = [](const std::string &s) -> std::string
     {
+        size_t start = s.find_first_not_of(" \t\n\r");
+        if (start == std::string::npos)
+            return "";
+        size_t end = s.find_last_not_of(" \t\n\r");
+        return s.substr(start, end - start + 1);
+    };
+    std::string trimmedName = trim(name);
+    std::regex namePattern(R"(^[A-Za-z0-9 _-]{1,32}$)");
+    if (trimmedName.empty())
+        throw std::invalid_argument("Category ctor: name is required.");
+    if (!std::regex_match(trimmedName, namePattern))
+        throw std::invalid_argument("Category ctor: name must be 1-32 chars and only contain letters, numbers, space, _, -");
+    this->name = trimmedName;
+
+    std::string err;
+    if (!Category::valid(this->name, budget, warningThreshold, err))
+        throw std::invalid_argument("Category ctor: " + err);
+    if (this->budget >= 0.0 && this->warningThreshold == -1.0)
         this->warningThreshold = 0.7 * this->budget;
-    }
 }
 
 /**

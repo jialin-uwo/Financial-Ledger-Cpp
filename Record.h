@@ -47,13 +47,7 @@ public:
     /**
      * @brief Constructs a Record object.
      *
-     * Initializes a financial transaction record with the provided values.
-     *
-     * @param id The unique identifier of the record.
-     * @param date The transaction date.
-     * @param amount The transaction amount.
-     * @param isExpense True if the record is an expense; false if it is income.
-     * @param category The category of the transaction. Defaults to an empty string.
+     * 所有参数都做严格校验，校验不通过抛出std::invalid_argument。
      */
     Record(int id,
            const std::string &date,

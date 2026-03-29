@@ -41,6 +41,12 @@
  * before constructing a Category object.
  */
 class Category
+/**
+ * @brief Sets the warning threshold for the category.
+ *
+ * @param warningThreshold The new warning threshold value.
+ */
+
 {
 private:
     /** @brief Category name. */
@@ -67,28 +73,31 @@ public:
     /**
      * @brief Constructs a Category object.
      *
-     * Creates a category with the given values. Validation should be done
-     * before construction by calling Category::valid(...).
-     *
-     * If budget >= 0 and warningThreshold == -1.0, the warning threshold
-     * is automatically set to 70% of the budget.
-     *
-     * Invalid input is expected to be intercepted by Category::valid(...)
-     * before construction. The constructor does not handle the main
-     * validation/error-reporting workflow.
-     *
      * @param name The category name.
-     * @param isExpense True if this category is for expenses; false if for income.
-     *                  Defaults to true.
-     * @param budget The budget limit for this category. Defaults to -1.0.
-     *               A value of -1.0 means "not set".
-     * @param warningThreshold The warning threshold for this category.
-     *                         Defaults to -1.0. A value of -1.0 means "not set".
+     * @param isExpense True if this category is for expenses; false if for income. Defaults to true.
+     * @param budget The budget limit for this category. Defaults to -1.0. A value of -1.0 means "not set".
+     * @param warningThreshold The warning threshold for this category. Defaults to -1.0. A value of -1.0 means "not set".
+     *
+     * Throws std::invalid_argument if name is invalid or validation fails.
      */
     Category(const std::string &name,
              bool isExpense = true,
              double budget = -1.0,
              double warningThreshold = -1.0);
+
+    /**
+     * @brief Sets the budget for the category (with validation).
+     * Throws std::invalid_argument if invalid.
+     * @param budget The new budget value.
+     */
+    void setBudget(double budget);
+
+    /**
+     * @brief Sets the warning threshold for the category (with validation).
+     * Throws std::invalid_argument if invalid.
+     * @param warningThreshold The new warning threshold value.
+     */
+    void setWarningThreshold(double warningThreshold);
 
     /**
      * @brief Validates category input data.
@@ -157,20 +166,6 @@ public:
      * @param isExpense True if this is an expense category; false otherwise.
      */
     void setIsExpense(bool isExpense);
-
-    /**
-     * @brief Sets the budget for the category.
-     *
-     * @param budget The new budget value.
-     */
-    void setBudget(double budget);
-
-    /**
-     * @brief Sets the warning threshold for the category.
-     *
-     * @param warningThreshold The new warning threshold value.
-     */
-    void setWarningThreshold(double warningThreshold);
 
     /**
      * @brief Checks whether the category has a valid budget.

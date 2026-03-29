@@ -1,11 +1,13 @@
 name,isExpense,budget,warningThreshold
-Other Income,0,-1.0,-1.0
-Salary,0,-1.0,-1.0
-Bonus,0,-1.0,-1.0
-Food,1,800.0,600.0
-Transport,1,500.0,350.0
-Shopping,1,1000.0,700.0
-Other Expense,1,600.0,450.0
-Housing,1,1800.0,1400.0
-Entertainment,1,400.0,280.0
-Healthcare,1,700.0,500.0
+Other Income,0,-1,-1
+Salary,0,-1,-1
+Bonus,0,-1,-1
+Food,1,800,600
+Transport,1,500,350
+Shopping,1,1000,700
+Other Expense,1,600,450
+Housing,1,1800,1400
+Entertainment,1,400,280
+Healthcare,1,700,500
+Interest,0,-1,-1
+Book,1,100,70
