@@ -1,4 +1,3 @@
-
 #include <cstdio>
 #ifdef __cplusplus
 extern "C"
@@ -25,6 +24,7 @@ extern "C"
 #include <map>
 #include <cstdlib> // getenv
 #include <cstdio>  // popen, pclose
+#include <cmath>
 void MenuSystem::handleTrend()
     const
 {
@@ -103,13 +103,22 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData)
             fprintf(pipe, "set xtics rotate by -45\n");
             fprintf(pipe, "set grid\n");
             fprintf(pipe, "set ylabel 'Amount ($)'\n");
+            fprintf(pipe, "set offsets 0, 0, graph 0.25, 0\n");
+            fprintf(pipe, "plot '-' using 0:2:xtic(1) with linespoints title 'Trend' lw 2 pt 7, \\\n");
+            fprintf(pipe, "     '-' using 0:2:(sprintf(\"$%%.2f\", $2)) with labels rotate by 70 left offset char 0, 1.0 notitle\n");
 
-            fprintf(pipe, "plot '-' using 0:2:xtic(1) with linespoints title 'Trend' lw 2 pt 7\n");
             for (const auto &pair : trendData)
             {
                 fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second);
             }
             fprintf(pipe, "e\n");
+
+            for (const auto &pair : trendData)
+            {
+                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second);
+            }
+            fprintf(pipe, "e\n");
+
             pclose(pipe);
 
             std::cout << "\n>> Trend chart opened in external gnuplot window.\n";
@@ -244,6 +253,24 @@ namespace
         }
 
         return "";
+    }
+
+    const std::string &getGnuplotExecutable();
+
+    // Escape label text so quotes/backslashes do not break gnuplot data parsing.
+    std::string escapeForGnuplotLabel(const std::string &input)
+    {
+        std::string escaped;
+        escaped.reserve(input.size());
+        for (char ch : input)
+        {
+            if (ch == '\\' || ch == '"')
+            {
+                escaped.push_back('\\');
+            }
+            escaped.push_back(ch);
+        }
+        return escaped;
     }
 
     const std::string &getGnuplotExecutable()
@@ -1181,22 +1208,61 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
         FILE *pipe = openGnuplotPipe();
         if (pipe)
         {
-            fprintf(pipe, "set title 'Expense Distribution'\n");
-            fprintf(pipe, "set style data histograms\n");
-            fprintf(pipe, "set style fill solid 0.5 border -1\n");
-            fprintf(pipe, "set boxwidth 0.7\n");
-            fprintf(pipe, "set xtics rotate by -45\n");
-            fprintf(pipe, "set ylabel 'Amount ($)'\n");
+            fprintf(pipe, "set title 'Expense Distribution (Pie Chart)'\n");
+            fprintf(pipe, "set size square\n");
+            fprintf(pipe, "unset key\n");
+            fprintf(pipe, "unset border\n");
+            fprintf(pipe, "unset tics\n");
+            fprintf(pipe, "set xrange [-2.0:2.0]\n");
+            fprintf(pipe, "set yrange [-2.0:2.0]\n");
+            fprintf(pipe, "set style fill solid 1.0 border -1\n");
 
-            fprintf(pipe, "plot '-' using 2:xtic(1) title 'Expense by Category' linecolor rgb '#4169E1'\n");
+            fprintf(pipe, "plot '-' using 1:2:3:4:5:6 with circles lc var notitle, \\\n");
+            fprintf(pipe, "     '-' using 1:2:3 with labels notitle\n");
+
+            double totalExpense = distribution.first;
+            if (totalExpense <= 0.0) totalExpense = 1.0;
+
+            double currentAngle = 0.0;
+            int colorIndex = 1;
             for (const auto &item : items)
             {
-                fprintf(pipe, "\"%s\" %f\n", item.category.c_str(), item.amount);
+                double ratio = item.amount / totalExpense;
+                double sliceAngle = ratio * 360.0;
+                if (sliceAngle > 0.0) {
+                    fprintf(pipe, "0 0 1 %f %f %d\n", currentAngle, currentAngle + sliceAngle, colorIndex);
+                    currentAngle += sliceAngle;
+                }
+                colorIndex++;
+            }
+            fprintf(pipe, "e\n");
+
+            currentAngle = 0.0;
+            const double PI = 3.14159265358979323846;
+            for (const auto &item : items)
+            {
+                double ratio = item.amount / totalExpense;
+                double sliceAngle = ratio * 360.0;
+
+                if (sliceAngle > 0.0) {
+                    double midAngle = currentAngle + sliceAngle / 2.0;
+                    double rad = midAngle * PI / 180.0;
+
+                    double lx = 1.35 * std::cos(rad);
+                    double ly = 1.35 * std::sin(rad);
+
+                    double displayPercent = ratio * 100.0;
+                    const std::string label = escapeForGnuplotLabel(item.category);
+
+                    fprintf(pipe, "%f %f \"%s ($%.2f, %.1f%%)\"\n", lx, ly, label.c_str(), item.amount, displayPercent);
+
+                    currentAngle += sliceAngle;
+                }
             }
             fprintf(pipe, "e\n");
             pclose(pipe);
 
-            std::cout << ">> Chart opened in external gnuplot window.\n";
+            std::cout << ">> Pie chart opened in external gnuplot window.\n";
             std::cout << std::string(75, '-') << "\n";
             return;
         }
@@ -1278,21 +1344,21 @@ void MenuSystem::renderIncomeExpense(const std::map<std::string, std::pair<doubl
             fprintf(pipe, "set xtics rotate by -45\n");
             fprintf(pipe, "set grid y\n");
             fprintf(pipe, "set ylabel 'Amount ($)'\n");
-
+            fprintf(pipe, "set offsets 0, 0, graph 0.25, 0\n");
             fprintf(pipe, "plot '-' using 2:xtic(1) title 'Income' linecolor rgb '#228B22', \\\n");
-            fprintf(pipe, "     '-' using 2 title 'Expense' linecolor rgb '#B22222'\n");
+            fprintf(pipe, "     '-' using 3 title 'Expense' linecolor rgb '#B22222', \\\n");
+            fprintf(pipe, "     '-' using ($0-0.18):2:(sprintf(\"$%%.2f\", $2)) with labels font \",10\" rotate by 90 left offset 0, 0.5 notitle, \\\n");
+            fprintf(pipe, "     '-' using ($0+0.18):3:(sprintf(\"$%%.2f\", $3)) with labels font \",10\" rotate by 90 left offset 0, 0.5 notitle\n");
 
-            for (const auto &pair : data)
+            for (int i = 0; i < 4; i++)
             {
-                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second.first);
+                for (const auto &pair : data)
+                {
+                    fprintf(pipe, "\"%s\" %f %f\n", pair.first.c_str(), pair.second.first, pair.second.second);
+                }
+                fprintf(pipe, "e\n");
             }
-            fprintf(pipe, "e\n");
 
-            for (const auto &pair : data)
-            {
-                fprintf(pipe, "\"%s\" %f\n", pair.first.c_str(), pair.second.second);
-            }
-            fprintf(pipe, "e\n");
             pclose(pipe);
 
             std::cout << "\n>> Income vs Expense chart opened in external gnuplot window.\n";
