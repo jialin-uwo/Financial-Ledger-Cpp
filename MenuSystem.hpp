@@ -36,7 +36,7 @@ private:
     void handleDistribution();
     static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>> &distribution);
     void handleTrend() const;
-    static void renderTrend(const std::map<std::string, double> &trendData);
+    static void renderTrend(const std::map<std::string, double> &trendData, const std::string &category = "");
     void handleIncomeExpense() const;
     static void renderIncomeExpense(const std::map<std::string, std::pair<double, double>> &data);
     static void renderRecordTable(const std::vector<Record> &records);

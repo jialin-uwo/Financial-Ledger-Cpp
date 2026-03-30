@@ -25,13 +25,12 @@ extern "C"
 #include <cstdlib> // getenv
 #include <cstdio>  // popen, pclose
 #include <cmath>
-void MenuSystem::handleTrend()
-    const
+void MenuSystem::handleTrend() const
 {
     std::cout << "\n=== Trend Analysis ===\n";
 
     std::string start, end, cat, typeStr;
-    int isExpense = 1; // 默认统计支出
+    int isExpense = 1;
 
     while (true)
     {
@@ -81,9 +80,11 @@ void MenuSystem::handleTrend()
         std::cout << "No records found for the specified criteria.\n";
         return;
     }
-    renderTrend(trendData);
+
+    renderTrend(trendData, cat);
 }
-void MenuSystem::renderTrend(const std::map<std::string, double> &trendData)
+
+void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, const std::string &category)
 {
     double maxAmount = 0.0;
     for (const auto &pair : trendData)
@@ -92,13 +93,18 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData)
             maxAmount = pair.second;
     }
 
+    std::string chartTitle = "Monthly Trend Analysis";
+    if (!category.empty()) {
+        chartTitle += " (" + category + ")";
+    }
+
     // --- Gnuplot Rendering Branch ---
     if (shouldUseGnuplot())
     {
         FILE *pipe = openGnuplotPipe();
         if (pipe)
         {
-            fprintf(pipe, "set title 'Monthly Trend Analysis'\n");
+            fprintf(pipe, "set title '%s'\n", chartTitle.c_str());
             fprintf(pipe, "set style data linespoints\n");
             fprintf(pipe, "set xtics rotate by -45\n");
             fprintf(pipe, "set grid\n");
@@ -127,7 +133,7 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData)
     }
 
     // --- ASCII Rollback Rendering Branch ---
-    std::cout << "\nTrend Report (Monthly)\n";
+    std::cout << "\n" << chartTitle << "\n";
     std::cout << std::string(60, '-') << "\n";
     std::cout << std::left
               << std::setw(12) << "Month"
@@ -1213,16 +1219,23 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
             fprintf(pipe, "unset key\n");
             fprintf(pipe, "unset border\n");
             fprintf(pipe, "unset tics\n");
-            fprintf(pipe, "set xrange [-2.0:2.0]\n");
-            fprintf(pipe, "set yrange [-2.0:2.0]\n");
+
+            // Cover a suitable range to accommodate the larger circle and labels
+            fprintf(pipe, "set xrange [-3.5:3.5]\n");
+            fprintf(pipe, "set yrange [-3.5:3.5]\n");
             fprintf(pipe, "set style fill solid 1.0 border -1\n");
 
             fprintf(pipe, "plot '-' using 1:2:3:4:5:6 with circles lc var notitle, \\\n");
-            fprintf(pipe, "     '-' using 1:2:3 with labels notitle\n");
+            fprintf(pipe, "     '-' using 1:2:3:4 with vectors nohead lc rgb 'black' notitle, \\\n");
+            fprintf(pipe, "     '-' using 1:2:3 with labels left notitle, \\\n");
+            fprintf(pipe, "     '-' using 1:2:3 with labels right notitle\n");
 
             double totalExpense = distribution.first;
             if (totalExpense <= 0.0) totalExpense = 1.0;
 
+            const double PI = 3.14159265358979323846;
+
+            // 1st data block: Circle slices (radius increased to 2.2)
             double currentAngle = 0.0;
             int colorIndex = 1;
             for (const auto &item : items)
@@ -1230,15 +1243,16 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                 double ratio = item.amount / totalExpense;
                 double sliceAngle = ratio * 360.0;
                 if (sliceAngle > 0.0) {
-                    fprintf(pipe, "0 0 1 %f %f %d\n", currentAngle, currentAngle + sliceAngle, colorIndex);
+                    // Third parameter 2.2 is the radius
+                    fprintf(pipe, "0 0 2.2 %f %f %d\n", currentAngle, currentAngle + sliceAngle, colorIndex);
                     currentAngle += sliceAngle;
                 }
                 colorIndex++;
             }
             fprintf(pipe, "e\n");
 
+            // 2nd data block: Vector guidelines
             currentAngle = 0.0;
-            const double PI = 3.14159265358979323846;
             for (const auto &item : items)
             {
                 double ratio = item.amount / totalExpense;
@@ -1248,18 +1262,78 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                     double midAngle = currentAngle + sliceAngle / 2.0;
                     double rad = midAngle * PI / 180.0;
 
-                    double lx = 1.35 * std::cos(rad);
-                    double ly = 1.35 * std::sin(rad);
+                    double r_start = 2.2;  // Starting at enlarged circle edge
+                    double r_end = 2.5;    // Ending vector outside
 
-                    double displayPercent = ratio * 100.0;
-                    const std::string label = escapeForGnuplotLabel(item.category);
+                    double vx = r_start * std::cos(rad);
+                    double vy = r_start * std::sin(rad);
+                    double vdx = (r_end - r_start) * std::cos(rad);
+                    double vdy = (r_end - r_start) * std::sin(rad);
 
-                    fprintf(pipe, "%f %f \"%s ($%.2f, %.1f%%)\"\n", lx, ly, label.c_str(), item.amount, displayPercent);
-
+                    fprintf(pipe, "%f %f %f %f\n", vx, vy, vdx, vdy);
                     currentAngle += sliceAngle;
                 }
             }
             fprintf(pipe, "e\n");
+
+            // 3rd data block: Labels on the right side (align left, extend outward)
+            bool hasRightSideLabels = false;
+            currentAngle = 0.0;
+            for (const auto &item : items)
+            {
+                double ratio = item.amount / totalExpense;
+                double sliceAngle = ratio * 360.0;
+
+                if (sliceAngle > 0.0) {
+                    double midAngle = currentAngle + sliceAngle / 2.0;
+                    double rad = midAngle * PI / 180.0;
+
+                    // cos(rad) >= 0 -> Right hemisphere
+                    if (std::cos(rad) >= 0) {
+                        double label_r = 2.55;
+                        double lx = label_r * std::cos(rad);
+                        double ly = label_r * std::sin(rad);
+
+                        double displayPercent = ratio * 100.0;
+                        const std::string label = escapeForGnuplotLabel(item.category);
+                        fprintf(pipe, "%f %f \"%s\\n$%.2f, %.1f%%\"\n", lx, ly, label.c_str(), item.amount, displayPercent);
+                        hasRightSideLabels = true;
+                    }
+                    currentAngle += sliceAngle;
+                }
+            }
+            if (!hasRightSideLabels) fprintf(pipe, "0 0 \"\"\n");
+            fprintf(pipe, "e\n");
+
+            // 4th data block: Labels on the left side (align right, extend outward)
+            bool hasLeftSideLabels = false;
+            currentAngle = 0.0;
+            for (const auto &item : items)
+            {
+                double ratio = item.amount / totalExpense;
+                double sliceAngle = ratio * 360.0;
+
+                if (sliceAngle > 0.0) {
+                    double midAngle = currentAngle + sliceAngle / 2.0;
+                    double rad = midAngle * PI / 180.0;
+
+                    // cos(rad) < 0 -> Left hemisphere
+                    if (std::cos(rad) < 0) {
+                        double label_r = 2.55;
+                        double lx = label_r * std::cos(rad);
+                        double ly = label_r * std::sin(rad);
+
+                        double displayPercent = ratio * 100.0;
+                        const std::string label = escapeForGnuplotLabel(item.category);
+                        fprintf(pipe, "%f %f \"%s\\n$%.2f, %.1f%%\"\n", lx, ly, label.c_str(), item.amount, displayPercent);
+                        hasLeftSideLabels = true;
+                    }
+                    currentAngle += sliceAngle;
+                }
+            }
+            if (!hasLeftSideLabels) fprintf(pipe, "0 0 \"\"\n");
+            fprintf(pipe, "e\n");
+
             pclose(pipe);
 
             std::cout << ">> Pie chart opened in external gnuplot window.\n";
@@ -1337,7 +1411,7 @@ void MenuSystem::renderIncomeExpense(const std::map<std::string, std::pair<doubl
         FILE *pipe = openGnuplotPipe();
         if (pipe)
         {
-            fprintf(pipe, "set title 'Income vs Expense Comparison'\n");
+            fprintf(pipe, "set title 'Monthly Income vs Expense Comparison'\n");
             fprintf(pipe, "set style data histograms\n");
             fprintf(pipe, "set style histogram clustered gap 1\n");
             fprintf(pipe, "set style fill solid 0.7 border -1\n");
