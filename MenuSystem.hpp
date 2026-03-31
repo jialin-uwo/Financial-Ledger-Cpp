@@ -10,12 +10,8 @@ private:
     LedgerController &controller;
 
     static void displayMainMenu();
-    void handleCommand(std::string cmd);
-
     void handleAddRecord();
     void handleAddRecordByFile();
-    static void displayRecordMenu();
-    void handleRecordManagement();
     static void displayReportMenu();
     void handleReportManagement();
     static void displayCategoryMenu();
@@ -36,7 +32,7 @@ private:
     void handleDistribution();
     static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>> &distribution);
     void handleTrend() const;
-    static void renderTrend(const std::map<std::string, double> &trendData, const std::string &category = "");
+    static void renderTrend(const std::map<std::string, double> &trendData, const std::string &category = "", const std::string &trendTypeStr = "Expense");
     void handleIncomeExpense() const;
     static void renderIncomeExpense(const std::map<std::string, std::pair<double, double>> &data);
     static void renderRecordTable(const std::vector<Record> &records);
@@ -45,8 +41,6 @@ private:
     std::string getValidatedInput(std::string prompt, bool allowEmpty = false);
     double getValidatedAmount(bool allowEmpty = false);
     std::string getValidatedDate() const;
-
-    void exitMenu() const;
 
 public:
     // Constructor: accepts a LedgerController reference

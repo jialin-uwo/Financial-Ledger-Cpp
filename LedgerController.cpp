@@ -1,3 +1,5 @@
+
+
 /**
  * @file LedgerController.cpp
  * @brief Implementation of the LedgerController class.
@@ -138,7 +140,7 @@ Result LedgerController::addRecord(std::string date, double amount, bool isExpen
     const bool categoryWasCreated = (categoryIt == this->categories.end());
     if (!categoryWasCreated && categoryIt->getIsExpense() != isExpense)
     {
-        this->lastError = "Category '" + normalizedCategory + "' type does not match the record type.";
+        this->lastError = "The type (income/expense) of category '" + normalizedCategory + "' does not match the current record type. Please check that the selected category and record type are consistent.";
         return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
@@ -195,6 +197,7 @@ Result LedgerController::addRecordsByFile(std::string filePath)
     const int originalNextRecordId = this->nextRecordId;
     bool categoriesChanged = false;
     int acceptedCount = 0;
+    int autoCreatedCategoryCount = 0;
 
     for (size_t index = 0; index < importedRecords.size(); ++index)
     {
@@ -215,6 +218,7 @@ Result LedgerController::addRecordsByFile(std::string filePath)
         {
             this->categories.emplace_back(normalizedCategory, record.getIsExpense());
             categoriesChanged = true;
+            ++autoCreatedCategoryCount;
         }
 
         Record standardizedRec(this->nextRecordId++, record.getDate(), record.getAmount(), record.getIsExpense(), normalizedCategory);
@@ -250,6 +254,10 @@ Result LedgerController::addRecordsByFile(std::string filePath)
     oss << "Processed " << report.processedRows
         << " lines, imported " << report.successRows
         << " records, errors " << report.errorRows << ".";
+    if (autoCreatedCategoryCount > 0)
+    {
+        oss << " Auto-created " << autoCreatedCategoryCount << " categor" << (autoCreatedCategoryCount > 1 ? "ies" : "y") << ".";
+    }
 
     if (!report.errorsByMessage.empty())
     {
@@ -328,7 +336,7 @@ Result LedgerController::updateRecord(int recordId, std::string date, double amo
         const bool shouldCreateCategory = (categoryIt == this->categories.end());
         if (!shouldCreateCategory && categoryIt->getIsExpense() != effectiveIsExpense)
         {
-            this->lastError = "Category '" + effectiveCategory + "' type does not match the record type.";
+            this->lastError = "The type (income/expense) of category '" + effectiveCategory + "' does not match the current record type. Please check that the selected category and record type are consistent.";
             return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
         }
 
@@ -456,6 +464,23 @@ std::vector<Record> LedgerController::getRecords(std::string start, std::string 
     {
         this->lastError = "Invalid isExpense value. Use -1 (all), 0 (income), or 1 (expense).";
         return {};
+    }
+
+    // Strict type-category validation: if both isExpense and cat are specified, check if category exists and matches type
+    if (!cat.empty() && isExpense != -1)
+    {
+        auto categoryIt = std::find_if(this->categories.begin(), this->categories.end(), [&](const Category &category)
+                                       { return trim(category.getName()) == trim(cat); });
+        if (categoryIt == this->categories.end())
+        {
+            this->lastError = "Category '" + cat + "' does not exist.";
+            return {};
+        }
+        if (categoryIt->getIsExpense() != (isExpense == 1))
+        {
+            this->lastError = "Category '" + cat + "' type does not match the selected type.";
+            return {};
+        }
     }
 
     std::vector<Record> filteredRecords;
@@ -911,4 +936,17 @@ Record LedgerController::getRecordById(int id)
             return rec;
     }
     return Record(-1, "", 0.0, true, "");
+}
+
+int LedgerController::getCategoryTypeByName(const std::string &name) const
+{
+    std::string trimmed = trim(name);
+    for (const auto &cat : categories)
+    {
+        if (trim(cat.getName()) == trimmed)
+        {
+            return cat.getIsExpense() ? 1 : 0;
+        }
+    }
+    return -1;
 }

@@ -1,19 +1,17 @@
+
 /**
- * @file LedgerController.h
+ * @file LedgerController.hpp
  * @brief Orchestrates financial data flow between CSV storage and the User Interface.
- * * This controller manages a collection of financial records, providing services for
+ * This controller manages a collection of financial records, providing services for
  * persistent storage via DataAccess and complex analytics via FinancialAnalyzer.
  * It supports cumulative filtering and comprehensive reporting (Income, Expense, Balance)
  * to satisfy user requirements for financial health monitoring.
  * @author Jialin Li
  */
 
-#ifndef LEDGERCONTROLLER_H
-#define LEDGERCONTROLLER_H
+#ifndef LEDGERCONTROLLER_HPP
+#define LEDGERCONTROLLER_HPP
 
-#include <vector>
-#include <string>
-#include "Record.h"
 #include "FinancialAnalyzer.h"
 #include "DataAccess.h"
 #include "Result.h"
@@ -293,6 +291,15 @@ public:
      * @return The matching Record if found, otherwise a Record with id = -1.
      */
     Record getRecordById(int id);
+
+    /**
+     * @brief Get the type of a category by its name.
+     *
+     * This function searches for a category by name and returns its type.
+     * @param name The category name to search for (case and space insensitive).
+     * @return int Returns 1 if the category is expense, 0 if income, -1 if not found.
+     */
+    int getCategoryTypeByName(const std::string &name) const;
 };
 
-#endif // LEDGERCONTController_H
+#endif // LEDGERCONTROLLER_HPP

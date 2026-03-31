@@ -19,6 +19,8 @@ struct Result
 {
     StatusCode code;
     std::string message;
-    Result(StatusCode c = StatusCode::UNKNOWN, const std::string &msg = "") : code(c), message(msg) {}
+    int reassignedCount;
+    Result(StatusCode c = StatusCode::UNKNOWN, const std::string &msg = "", int reassigned = -1)
+        : code(c), message(msg), reassignedCount(reassigned) {}
     bool ok() const { return code == StatusCode::SUCCESS; }
 };

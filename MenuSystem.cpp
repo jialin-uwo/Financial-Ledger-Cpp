@@ -27,16 +27,18 @@ extern "C"
 #include <cmath>
 void MenuSystem::handleTrend() const
 {
-    std::cout << "\n=== Trend Analysis ===\n";
+    std::cout << "\n=== Trend Analysis (Monthly) ===\n";
+    std::cout << "This feature shows the monthly trend of your income or expenses over time, helping you identify patterns and changes in your financial activity." << std::endl;
 
     std::string start, end, cat, typeStr;
     int isExpense = 1;
+    std::string trendTypeStr = "Expense";
 
     while (true)
     {
-        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter start date (YYYY-MM-DD, or press Enter to include from the earliest record): ";
         start = getValidatedDate();
-        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter end date (YYYY-MM-DD, or press Enter to include up to the latest record): ";
         end = getValidatedDate();
 
         if (!start.empty() && !end.empty() && start > end)
@@ -47,25 +49,26 @@ void MenuSystem::handleTrend() const
         break;
     }
 
-    std::cout << "Filter by type? (1 = Expense, 0 = Income, or leave blank for Expense): ";
+    std::cout << "Filter by type? (1 = Expense, 0 = Income, or press Enter for Expense): ";
     std::getline(std::cin, typeStr);
     if (!typeStr.empty())
     {
         try
         {
             isExpense = std::stoi(typeStr);
-            if (isExpense != 0 && isExpense != 1)
-            {
-                isExpense = 1;
-            }
+            if (isExpense == 0)
+                trendTypeStr = "Income";
+            else
+                trendTypeStr = "Expense";
         }
         catch (...)
         {
             isExpense = 1;
+            trendTypeStr = "Expense";
         }
     }
 
-    std::cout << "Enter category name or leave blank for all categories: ";
+    std::cout << "Enter category name (or press Enter for all categories): ";
     std::getline(std::cin, cat);
 
     std::map<std::string, double> trendData = controller.getTrend(start, end, isExpense, cat);
@@ -81,10 +84,10 @@ void MenuSystem::handleTrend() const
         return;
     }
 
-    renderTrend(trendData, cat);
+    renderTrend(trendData, cat, trendTypeStr);
 }
 
-void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, const std::string &category)
+void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, const std::string &category, const std::string &trendTypeStr)
 {
     double maxAmount = 0.0;
     for (const auto &pair : trendData)
@@ -93,9 +96,11 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, con
             maxAmount = pair.second;
     }
 
-    std::string chartTitle = "Monthly Trend Analysis";
-    if (!category.empty()) {
-        chartTitle += " (" + category + ")";
+    // Compose chart title with type and category
+    std::string chartTitle = "Monthly Trend Analysis [" + trendTypeStr + "]";
+    if (!category.empty())
+    {
+        chartTitle += " [Category: " + category + "]";
     }
 
     // --- Gnuplot Rendering Branch ---
@@ -105,6 +110,11 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, con
         if (pipe)
         {
             fprintf(pipe, "set title '%s'\n", chartTitle.c_str());
+            fprintf(pipe, "set label 1 at graph 0.01,0.97 'Type: %s' left font ',10'\n", trendTypeStr.c_str());
+            if (!category.empty())
+            {
+                fprintf(pipe, "set label 2 at graph 0.01,0.93 'Category: %s' left font ',10'\n", category.c_str());
+            }
             fprintf(pipe, "set style data linespoints\n");
             fprintf(pipe, "set xtics rotate by -45\n");
             fprintf(pipe, "set grid\n");
@@ -133,13 +143,14 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, con
     }
 
     // --- ASCII Rollback Rendering Branch ---
-    std::cout << "\n" << chartTitle << "\n";
-    std::cout << std::string(60, '-') << "\n";
+    std::cout << "\n"
+              << chartTitle << "\n";
+    std::cout << std::string(75, '-') << "\n";
     std::cout << std::left
               << std::setw(12) << "Month"
               << std::setw(15) << "Total Amount"
               << "Trend\n";
-    std::cout << std::string(60, '-') << "\n";
+    std::cout << std::string(75, '-') << "\n";
 
     for (const auto &pair : trendData)
     {
@@ -157,7 +168,7 @@ void MenuSystem::renderTrend(const std::map<std::string, double> &trendData, con
                   << "$" << std::setw(14) << std::fixed << std::setprecision(2) << amount
                   << "|" << bar << "\n";
     }
-    std::cout << std::string(60, '-') << "\n";
+    std::cout << std::string(75, '-') << "\n";
 }
 
 void MenuSystem::renderRecordTable(const std::vector<Record> &records)
@@ -330,7 +341,7 @@ void MenuSystem::run()
     std::cout << "\n===============================================" << std::endl;
     std::cout << "   Welcome to C-The-Cash Personal Ledger!" << std::endl;
     std::cout << "===============================================" << std::endl;
-    std::cout << "Type 'h' at any menu for help or instructions." << std::endl;
+    // std::cout << "Type 'h' at any menu for help or instructions." << std::endl;
     if (!shouldUseGnuplot())
     {
         std::cout << "\n[Notice] gnuplot is not detected. Some charts will be shown in ASCII mode." << std::endl;
@@ -522,7 +533,7 @@ void MenuSystem::handleAddRecord()
 
     bool isExpense = (typeStr == "y" || typeStr == "Y");
 
-    std::string category = getValidatedInput("Enter category (optional, press Enter to auto-assign): ", true);
+    std::string category = getValidatedInput("Enter category (optional, press Enter to assign to 'Other Income/Expense'): ", true);
 
     Result result = controller.addRecord(date, amount, isExpense, category);
     std::cout << "\n> " << result.message << std::endl;
@@ -532,27 +543,18 @@ void MenuSystem::handleAddRecordByFile()
 {
     std::cout << "\n--- Add Records by File (Batch Import) ---" << std::endl;
     std::cout << R"(====================================================
-              IMPORT DATA FROM CSV FILE
+                            IMPORT DATA FROM CSV FILE
 ====================================================
 
-[ 1. CSV FORMAT GUIDE ]
-    Format: date,amount,isExpense,category
-    Example: 2024-01-01,4150.11,false,Salary
-             2024-01-02,22.22,true,Groceries
+[ CSV FORMAT REQUIREMENTS ]
+    Fields order: date,amount,isExpense,category
+    Example: 2024-01-01,4150.11,1,Salary
+                     2024-01-02,22.22,0,Groceries
 
-[ 2. ABOUT THE 'isExpense' COLUMN ]
-    - Use true/false(case-insensitive) or 1/0
-    - true / 1 means expense; false / 0 means income
-
-[ 3. ABOUT THE 'Category' COLUMN ]
-    - Category can be left blank
-    - Blank category will auto-assign:
-      * "Other Income" (for income)
-      * "Other Expense" (for expense)
-
-[ 4. SYSTEM REQUIREMENTS ]
+    - isExpense: 1/true means expense, 0/false means income (case-insensitive)
+    - category can be left blank; blank will auto-assign "Other Income" or "Other Expense"
     - Date format: YYYY-MM-DD
-    - File format: .csv (Comma Separated)
+    - File format: .csv (comma separated)
 
 Please enter the FULL path to your CSV file:
 > _
@@ -563,7 +565,31 @@ Please enter the FULL path to your CSV file:
     std::cout << "\n> " << result.message << std::endl;
     if (!result.ok())
     {
-        std::cout << "> Reason: " << result.message << std::endl;
+        // Try to print error details in a clearer, multi-line format if present
+        size_t pos = result.message.find("Error details:");
+        if (pos != std::string::npos)
+        {
+            std::string summary = result.message.substr(0, pos);
+            std::string details = result.message.substr(pos + 14); // 14 = strlen("Error details:")
+            std::cout << "> " << summary << std::endl;
+            std::cout << "> Error details:" << std::endl;
+            // Split details by "] [" and print each on a new line
+            size_t start = 0;
+            while (start < details.size())
+            {
+                size_t open = details.find('[', start);
+                size_t close = details.find(']', open);
+                if (open == std::string::npos || close == std::string::npos)
+                    break;
+                std::string err = details.substr(open + 1, close - open - 1);
+                std::cout << "  - " << err << std::endl;
+                start = close + 1;
+            }
+        }
+        else
+        {
+            std::cout << "> " << result.message << std::endl;
+        }
     }
 }
 
@@ -573,10 +599,10 @@ void MenuSystem::handleSearchRecords()
     std::cout << "(Press Enter to skip any filter and view all)" << std::endl;
 
     // Step 1: Get start date (optional)
-    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD): ", true);
+    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to include from the earliest record): ", true);
 
     // Step 2: Get end date (optional)
-    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD): ", true);
+    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to include up to the latest record): ", true);
 
     // Step 3: Get expense/income filter (optional)
     std::cout << "Filter by type:" << std::endl;
@@ -597,7 +623,7 @@ void MenuSystem::handleSearchRecords()
     }
 
     // Step 4: Optional category filter
-    std::string category = getValidatedInput("Enter Category (optional, press Enter for all categories): ", true);
+    std::string category = getValidatedInput("Enter category (optional, press Enter to select all categories): ", true);
 
     // Step 5: Get minimum amount (optional)
     double minAmount = getValidatedAmount(true);
@@ -609,7 +635,7 @@ void MenuSystem::handleSearchRecords()
         std::cout << "\n> No records found or invalid criteria." << std::endl;
         if (!controller.getLastError().message.empty())
         {
-            std::cout << "> Reason: " << controller.getLastError().message << std::endl;
+            // 只输出一次错误信息，已在其它地方输出
         }
     }
     else
@@ -621,12 +647,13 @@ void MenuSystem::handleSearchRecords()
 void MenuSystem::handleSimpleTotal()
 {
     std::cout << "\n--- Simple Total ---" << std::endl;
+    std::cout << "This feature calculates the total income or expense for a selected period, with optional type filtering." << std::endl;
 
     // Step 1: Get start date (optional)
-    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to skip): ", true);
+    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to include from the earliest record): ", true);
 
     // Step 2: Get end date (optional)
-    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to skip): ", true);
+    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to include up to the latest record): ", true);
 
     // Step 3: Get expense/income filter (optional)
     std::cout << "Filter by type:" << std::endl;
@@ -646,7 +673,7 @@ void MenuSystem::handleSimpleTotal()
         isExpense = 0; // Income only
     }
 
-    std::string category = getValidatedInput("Enter Category (optional, press Enter for all categories): ", true);
+    std::string category = getValidatedInput("Enter category (optional, press Enter to select all categories): ", true);
 
     // Call controller with all filters
     Result result = controller.getTotal(start, end, isExpense, category);
@@ -704,11 +731,14 @@ void MenuSystem::handleDeleteRecord()
 
 void MenuSystem::handleFinancialSummary()
 {
+    std::cout << "\n--- Financial Analytics & Reports ---" << std::endl;
+    std::cout << "This section provides various analysis and report features to help you understand your financial situation, spending habits, and trends.\n";
+    std::cout << "Available analyses include: summary, totals, budget status, expense distribution, monthly trends, and income vs expense comparison." << std::endl;
     std::cout << "\n--- Financial Summary (All-in-one) ---" << std::endl;
-    std::cout << "(Time filter only. Press Enter to skip Start/End date)" << std::endl;
+    std::cout << "(Time filter only. Press Enter to include from the earliest record or up to the latest record)" << std::endl;
 
-    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD): ", true);
-    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD): ", true);
+    std::string start = getValidatedInput("Enter Start Date (YYYY-MM-DD, or press Enter to include from the earliest record): ", true);
+    std::string end = getValidatedInput("Enter End Date (YYYY-MM-DD, or press Enter to include up to the latest record): ", true);
 
     std::map<std::string, double> summary = controller.getPeriodSummary(start, end);
 
@@ -717,7 +747,7 @@ void MenuSystem::handleFinancialSummary()
         std::cout << "> No data available to generate summary for the selected period." << std::endl;
         if (!controller.getLastError().message.empty())
         {
-            std::cout << "> Reason: " << controller.getLastError().message << std::endl;
+            // 只输出一次错误信息，已在其它地方输出
         }
         return;
     }
@@ -779,6 +809,7 @@ void MenuSystem::displayCategoryMenu()
     std::cout << "[0] Back to Main Menu" << std::endl;
     std::cout << "=========================================" << std::endl;
     std::cout << "Tip: Enter the number for the operation, or 'h' for help." << std::endl;
+    // Removed duplicate tip; will show only before relevant prompts
 }
 
 void MenuSystem::handleCategoryManagement()
@@ -818,7 +849,6 @@ void MenuSystem::handleCategoryManagement()
 void MenuSystem::handleAddCategory()
 {
     std::cout << "\n--- Add Category ---" << std::endl;
-    std::cout << "(输入 h 可随时查看帮助)" << std::endl;
 
     // 1. Category name (required)
     std::string name;
@@ -827,12 +857,12 @@ void MenuSystem::handleAddCategory()
         name = getValidatedInput("Enter category name: ");
         if (name == "h" || name == "H")
         {
-            std::cout << "类别名建议不超过16字符，不能留空。" << std::endl;
+            std::cout << "Tip: Category name is recommended to be within 16 characters and cannot be empty." << std::endl;
             continue;
         }
         if (name.empty())
         {
-            std::cout << "> 类别名不能为空，请重新输入。" << std::endl;
+            std::cout << "> Category name cannot be empty. Please re-enter." << std::endl;
             continue;
         }
         break;
@@ -840,8 +870,8 @@ void MenuSystem::handleAddCategory()
 
     // 2. Category type
     std::cout << "Category type:\n"
-              << "  e - Expense (支出)\n"
-              << "  i - Income (收入)\n";
+              << "  e - Expense\n"
+              << "  i - Income\n";
 
     std::string typeStr;
     bool isExpense = true;
@@ -850,7 +880,7 @@ void MenuSystem::handleAddCategory()
         typeStr = getValidatedInput("Enter type (e/i): ");
         if (typeStr == "h" || typeStr == "H")
         {
-            std::cout << "e 表示支出类别，i 表示收入类别。" << std::endl;
+            std::cout << "e means Expense category, i means Income category." << std::endl;
             continue;
         }
         if (typeStr == "e" || typeStr == "E")
@@ -863,7 +893,7 @@ void MenuSystem::handleAddCategory()
             isExpense = false;
             break;
         }
-        std::cout << "无效类型，请输入 'e'（支出）或 'i'（收入），或输入 h 获取帮助。" << std::endl;
+        std::cout << "Invalid type. Please enter 'e' (Expense) or 'i' (Income), or enter h for help." << std::endl;
     }
 
     // 3. Optional budget and warning threshold
@@ -871,11 +901,12 @@ void MenuSystem::handleAddCategory()
     double warningThreshold = -1.0;
     if (isExpense)
     {
-        std::cout << "可选字段（直接回车跳过）：" << std::endl;
-        std::string budgetStr = getValidatedInput("Enter budget for this category (>= 0, optional): ", true);
+        std::cout << "Note: Only expense categories can set budget and warning threshold." << std::endl;
+        std::cout << "Optional fields (press Enter to skip):" << std::endl;
+        std::string budgetStr = getValidatedInput("Enter monthly budget for this category (the maximum amount you plan to spend per month, >= 0, optional): ", true);
         if (budgetStr == "h" || budgetStr == "H")
         {
-            std::cout << "预算为该类别每月可用金额，留空表示不设预算。" << std::endl;
+            std::cout << "Budget sets a spending limit for this category each month. If you exceed this amount, you may get a warning. Leave blank if you do not want to set a budget." << std::endl;
             budgetStr.clear();
         }
         if (!budgetStr.empty())
@@ -885,61 +916,60 @@ void MenuSystem::handleAddCategory()
                 budget = std::stod(budgetStr);
                 if (budget < 0.0)
                 {
-                    std::cout << "> 错误：预算必须 >= 0。" << std::endl;
+                    std::cout << "> Error: Budget must be >= 0." << std::endl;
                     return;
                 }
             }
             catch (...)
             {
-                std::cout << "> 错误：预算格式无效，请输入数字。" << std::endl;
+                std::cout << "> Error: Invalid budget format. Please enter a number." << std::endl;
                 return;
             }
         }
 
-        std::string warningStr = getValidatedInput("Enter warning threshold that can trigger an alarm (Default value: 70% of budget)(>= 0, optional): ", true);
-        if (warningStr == "h" || warningStr == "H")
+        if (!budgetStr.empty())
         {
-            std::cout << "预警值为预算的提醒线，留空默认70%，必须小于等于预算。" << std::endl;
-            warningStr.clear();
-        }
-        if (!warningStr.empty())
-        {
-            try
+            std::string warningStr = getValidatedInput("Enter warning threshold for this category (the amount that will trigger a warning, default is 70% of budget, >= 0, optional): ", true);
+            if (warningStr == "h" || warningStr == "H")
             {
-                warningThreshold = std::stod(warningStr);
-                if (warningThreshold < 0.0)
+                std::cout << "Warning threshold is the amount at which you will receive a warning before reaching your budget limit. Leave blank to use the default (70% of budget). Must be less than or equal to the budget." << std::endl;
+                warningStr.clear();
+            }
+            if (!warningStr.empty())
+            {
+                try
                 {
-                    std::cout << "> 错误：预警值必须 >= 0。" << std::endl;
+                    warningThreshold = std::stod(warningStr);
+                    if (warningThreshold < 0.0)
+                    {
+                        std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
+                        return;
+                    }
+                }
+                catch (...)
+                {
+                    std::cout << "> Error: Invalid warning threshold format. Please enter a number." << std::endl;
                     return;
                 }
             }
-            catch (...)
+            if (budget < 0.0 && warningThreshold >= 0.0)
             {
-                std::cout << "> 错误：预警值格式无效，请输入数字。" << std::endl;
+                std::cout << "> Error: Warning threshold set but no budget set." << std::endl;
                 return;
             }
         }
-
-        if (budget < 0.0 && warningThreshold >= 0.0)
-        {
-            std::cout << "> 错误：设置了预警值但未设置预算。" << std::endl;
-            return;
-        }
     }
-    else
-    {
-        std::cout << "收入类别不支持预算和预警设置，直接回车继续。" << std::endl;
-    }
+    // For income categories, skip budget/warning input entirely
 
     // 4. Call controller
     Result result = controller.addCategory(name, isExpense, budget, warningThreshold);
     if (result.ok())
     {
-        std::cout << "\n> 操作成功！" << std::endl;
+        std::cout << "\n> " << result.message << std::endl;
     }
     else
     {
-        std::cout << "\n> 操作失败，原因：" << result.message << std::endl;
+        std::cout << "\n> " << result.message << std::endl;
     }
 }
 
@@ -952,7 +982,7 @@ void MenuSystem::handleListCategories()
         std::cout << "> No categories found. Please add a category first!" << std::endl;
         if (!controller.getLastError().message.empty())
         {
-            std::cout << "> Reason: " << controller.getLastError().message << std::endl;
+            // 只输出一次错误信息，已在其它地方输出
         }
         return;
     }
@@ -964,22 +994,48 @@ void MenuSystem::handleListCategories()
               << std::setw(10) << "Type"
               << std::setw(14) << "Budget"
               << std::setw(14) << "Warning" << std::endl;
-    std::cout << std::string(60, '-') << std::endl;
+    std::cout << std::string(75, '-') << std::endl;
 
     std::cout << std::fixed << std::setprecision(2);
-    int idx = 1;
+    // Sort: Income first (by name), then Expense (by name)
+    std::vector<Category> incomeCats, expenseCats;
     for (const auto &cat : categories)
     {
-        std::string type = cat.getIsExpense() ? "Expense" : "Income";
-        std::string budgetStr = (cat.getIsExpense() && cat.hasBudget()) ? ("$" + std::to_string(cat.getBudget())) : "N/A";
-        std::string warnStr = (cat.getIsExpense() && cat.hasBudget() && cat.getWarningThreshold() >= 0.0) ? ("$" + std::to_string(cat.getWarningThreshold())) : "N/A";
+        if (cat.getIsExpense())
+            expenseCats.push_back(cat);
+        else
+            incomeCats.push_back(cat);
+    }
+    auto byName = [](const Category &a, const Category &b)
+    {
+        return a.getName() < b.getName();
+    };
+    std::sort(incomeCats.begin(), incomeCats.end(), byName);
+    std::sort(expenseCats.begin(), expenseCats.end(), byName);
+    int idx = 1;
+    for (const auto &cat : incomeCats)
+    {
+        std::string type = "Income";
+        std::string budgetStr = "N/A";
+        std::string warnStr = "N/A";
         std::cout << std::setw(4) << idx++
                   << std::setw(18) << cat.getName().substr(0, 16)
                   << std::setw(10) << type
                   << std::setw(14) << budgetStr
                   << std::setw(14) << warnStr << std::endl;
     }
-    std::cout << std::string(60, '=') << std::endl;
+    for (const auto &cat : expenseCats)
+    {
+        std::string type = "Expense";
+        std::string budgetStr = (cat.hasBudget()) ? ("$" + std::to_string(cat.getBudget())) : "N/A";
+        std::string warnStr = (cat.hasBudget() && cat.getWarningThreshold() >= 0.0) ? ("$" + std::to_string(cat.getWarningThreshold())) : "N/A";
+        std::cout << std::setw(4) << idx++
+                  << std::setw(18) << cat.getName().substr(0, 16)
+                  << std::setw(10) << type
+                  << std::setw(14) << budgetStr
+                  << std::setw(14) << warnStr << std::endl;
+    }
+    std::cout << std::string(75, '=') << std::endl;
     std::cout << "Tip: Use the category name when adding or editing records.\n";
     std::cout << "      For best results, keep names within 16 characters.\n";
 }
@@ -987,79 +1043,97 @@ void MenuSystem::handleListCategories()
 void MenuSystem::handleUpdateCategory()
 {
     std::cout << "\n--- Update Category ---" << std::endl;
-
-    std::string oldName = getValidatedInput("Enter category name to update: ");
-
-    std::cout << "Press Enter to skip any field." << std::endl;
+    std::string oldName = getValidatedInput("Enter the original category name to update (cannot be skipped): ");
+    std::cout << "For each field below, press Enter to skip (skipping means the field will not be changed)." << std::endl;
+    std::cout << "You must provide at least one new value to update." << std::endl;
     std::string newName = getValidatedInput("Enter new name (optional): ", true);
 
     int isExpense = -1;
-    while (true)
+    std::string typeStr = getValidatedInput("Enter new type (e/i, optional): ", true);
+    if (!typeStr.empty())
     {
-        std::string typeStr = getValidatedInput("Enter new type (e/i, optional): ", true);
-        if (typeStr.empty())
-        {
-            break; // keep unchanged
-        }
         if (typeStr == "e" || typeStr == "E")
-        {
             isExpense = 1;
-            break;
-        }
-        if (typeStr == "i" || typeStr == "I")
-        {
+        else if (typeStr == "i" || typeStr == "I")
             isExpense = 0;
-            break;
+        else
+        {
+            std::cout << "Invalid type. Please enter e, i, or press Enter to skip." << std::endl;
+            return;
         }
-        std::cout << "Invalid type. Please enter e, i, or press Enter to skip." << std::endl;
+    }
+
+    // Dynamically determine if budget/warning prompts should be shown
+    bool willBeExpense = false;
+    if (isExpense == 1)
+    {
+        willBeExpense = true;
+    }
+    else if (isExpense == 0)
+    {
+        willBeExpense = false;
+    }
+    else
+    {
+        // If type not changed, get original type from controller
+        int origType = controller.getCategoryTypeByName(oldName);
+        willBeExpense = (origType == 1);
     }
 
     double budget = -1.0;
-    std::string budgetStr = getValidatedInput("Enter new budget for this category (Default value: 70% of budget)(>= 0, optional): ", true);
-    if (!budgetStr.empty())
+    double warningThreshold = -1.0;
+    std::string budgetStr, warningStr;
+    if (willBeExpense)
     {
-        try
+        std::cout << "Note: Only expense categories can set budget and warning threshold." << std::endl;
+        budgetStr = getValidatedInput("Enter new budget for this category (Default value: 70% of budget)(>= 0, optional): ", true);
+        if (!budgetStr.empty())
         {
-            budget = std::stod(budgetStr);
-            if (budget < 0.0)
+            try
             {
-                std::cout << "> Error: Budget must be >= 0." << std::endl;
+                budget = std::stod(budgetStr);
+                if (budget < 0.0)
+                {
+                    std::cout << "> Error: Budget must be >= 0." << std::endl;
+                    return;
+                }
+            }
+            catch (...)
+            {
+                std::cout << "> Error: Invalid budget format." << std::endl;
                 return;
             }
         }
-        catch (...)
+
+        warningStr = getValidatedInput("Enter new warning threshold that can trigger an alarm (>= 0, optional): ", true);
+        if (!warningStr.empty())
         {
-            std::cout << "> Error: Invalid budget format." << std::endl;
-            return;
+            try
+            {
+                warningThreshold = std::stod(warningStr);
+                if (warningThreshold < 0.0)
+                {
+                    std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
+                    return;
+                }
+            }
+            catch (...)
+            {
+                std::cout << "> Error: Invalid warning threshold format." << std::endl;
+                return;
+            }
         }
     }
 
-    double warningThreshold = -1.0;
-    std::string warningStr = getValidatedInput("Enter new warning threshold that can trigger an alarm (>= 0, optional): ", true);
-    if (!warningStr.empty())
+    // Check if all new fields are skipped
+    if (newName.empty() && typeStr.empty() && budgetStr.empty() && warningStr.empty())
     {
-        try
-        {
-            warningThreshold = std::stod(warningStr);
-            if (warningThreshold < 0.0)
-            {
-                std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
-                return;
-            }
-        }
-        catch (...)
-        {
-            std::cout << "> Error: Invalid warning threshold format." << std::endl;
-            return;
-        }
+        std::cout << "> Please provide at least one new field to update. Skipping all means no change." << std::endl;
+        return;
     }
 
     Result result = controller.updateCategory(oldName, newName, isExpense, budget, warningThreshold);
     std::cout << "\n> " << result.message << std::endl;
-    if (!result.ok())
-    {
-        std::cout << "> Reason: " << result.message << std::endl;
-    }
 }
 
 void MenuSystem::handleDeleteCategory()
@@ -1077,15 +1151,27 @@ void MenuSystem::handleDeleteCategory()
 
     Result result = controller.removeCategory(name);
     std::cout << "\n> " << result.message << std::endl;
-    if (!result.ok())
+    if (result.ok())
     {
-        std::cout << "> Reason: " << result.message << std::endl;
+        if (result.reassignedCount > 0)
+        {
+            std::cout << "> Note: " << result.reassignedCount << " record" << (result.reassignedCount > 1 ? "s have" : " has") << " been reassigned to the default category ('Other Expense' or 'Other Income')." << std::endl;
+        }
+        else
+        {
+            std::cout << "> Note: No records needed reassignment." << std::endl;
+        }
+    }
+    else
+    {
+        // 只输出一次错误信息，已在其它地方输出
     }
 }
 
 void MenuSystem::handleCurrentBudgetStatus()
 {
     std::cout << "\n=== Budget Status Report ===\n";
+    std::cout << "This report shows your budget status for each category in the current month, helping you track whether you are within, near, or over your budget." << std::endl;
 
     std::vector<BudgetStatus> statuses = controller.getCurrentBudgetStatus();
 
@@ -1095,6 +1181,7 @@ void MenuSystem::handleCurrentBudgetStatus()
         return;
     }
     renderBudgetStatus(statuses);
+    std::cout << "\nEnd of current month budget status report.\n";
 }
 
 void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus> &statuses)
@@ -1164,13 +1251,14 @@ void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus> &statuses)
 void MenuSystem::handleDistribution()
 {
     std::cout << "\n=== Expense Distribution Analysis ===\n";
+    std::cout << "This feature analyzes the proportion of your expenses by category for the selected period, helping you understand where your money goes." << std::endl;
 
     std::string start, end;
     while (true)
     {
-        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter start date (YYYY-MM-DD, or press Enter to include from the earliest record): ";
         start = getValidatedDate();
-        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter end date (YYYY-MM-DD, or press Enter to include up to the latest record): ";
         end = getValidatedDate();
 
         if (!start.empty() && !end.empty() && start > end)
@@ -1231,7 +1319,8 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
             fprintf(pipe, "     '-' using 1:2:3 with labels right notitle\n");
 
             double totalExpense = distribution.first;
-            if (totalExpense <= 0.0) totalExpense = 1.0;
+            if (totalExpense <= 0.0)
+                totalExpense = 1.0;
 
             const double PI = 3.14159265358979323846;
 
@@ -1242,7 +1331,8 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
             {
                 double ratio = item.amount / totalExpense;
                 double sliceAngle = ratio * 360.0;
-                if (sliceAngle > 0.0) {
+                if (sliceAngle > 0.0)
+                {
                     // Third parameter 2.2 is the radius
                     fprintf(pipe, "0 0 2.2 %f %f %d\n", currentAngle, currentAngle + sliceAngle, colorIndex);
                     currentAngle += sliceAngle;
@@ -1258,12 +1348,13 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                 double ratio = item.amount / totalExpense;
                 double sliceAngle = ratio * 360.0;
 
-                if (sliceAngle > 0.0) {
+                if (sliceAngle > 0.0)
+                {
                     double midAngle = currentAngle + sliceAngle / 2.0;
                     double rad = midAngle * PI / 180.0;
 
-                    double r_start = 2.2;  // Starting at enlarged circle edge
-                    double r_end = 2.5;    // Ending vector outside
+                    double r_start = 2.2; // Starting at enlarged circle edge
+                    double r_end = 2.5;   // Ending vector outside
 
                     double vx = r_start * std::cos(rad);
                     double vy = r_start * std::sin(rad);
@@ -1284,12 +1375,14 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                 double ratio = item.amount / totalExpense;
                 double sliceAngle = ratio * 360.0;
 
-                if (sliceAngle > 0.0) {
+                if (sliceAngle > 0.0)
+                {
                     double midAngle = currentAngle + sliceAngle / 2.0;
                     double rad = midAngle * PI / 180.0;
 
                     // cos(rad) >= 0 -> Right hemisphere
-                    if (std::cos(rad) >= 0) {
+                    if (std::cos(rad) >= 0)
+                    {
                         double label_r = 2.55;
                         double lx = label_r * std::cos(rad);
                         double ly = label_r * std::sin(rad);
@@ -1302,7 +1395,8 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                     currentAngle += sliceAngle;
                 }
             }
-            if (!hasRightSideLabels) fprintf(pipe, "0 0 \"\"\n");
+            if (!hasRightSideLabels)
+                fprintf(pipe, "0 0 \"\"\n");
             fprintf(pipe, "e\n");
 
             // 4th data block: Labels on the left side (align right, extend outward)
@@ -1313,12 +1407,14 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                 double ratio = item.amount / totalExpense;
                 double sliceAngle = ratio * 360.0;
 
-                if (sliceAngle > 0.0) {
+                if (sliceAngle > 0.0)
+                {
                     double midAngle = currentAngle + sliceAngle / 2.0;
                     double rad = midAngle * PI / 180.0;
 
                     // cos(rad) < 0 -> Left hemisphere
-                    if (std::cos(rad) < 0) {
+                    if (std::cos(rad) < 0)
+                    {
                         double label_r = 2.55;
                         double lx = label_r * std::cos(rad);
                         double ly = label_r * std::sin(rad);
@@ -1331,7 +1427,8 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
                     currentAngle += sliceAngle;
                 }
             }
-            if (!hasLeftSideLabels) fprintf(pipe, "0 0 \"\"\n");
+            if (!hasLeftSideLabels)
+                fprintf(pipe, "0 0 \"\"\n");
             fprintf(pipe, "e\n");
 
             pclose(pipe);
@@ -1365,15 +1462,16 @@ void MenuSystem::renderDistribution(const std::pair<double, std::vector<Category
 
 void MenuSystem::handleIncomeExpense() const
 {
-    std::cout << "\n=== Income vs Expense Analysis ===\n";
+    std::cout << "\n=== Income vs Expense Analysis (Monthly) ===\n";
+    std::cout << "This feature compares your total income and total expenses for each month, allowing you to see your net savings or overspending trends." << std::endl;
 
     std::string start, end;
 
     while (true)
     {
-        std::cout << "Enter start date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter Start Date (YYYY-MM-DD, or press Enter to include from the earliest record): ";
         start = getValidatedDate();
-        std::cout << "Enter end date (YYYY-MM-DD) or leave blank for all: ";
+        std::cout << "Enter End Date (YYYY-MM-DD, or press Enter to include up to the latest record): ";
         end = getValidatedDate();
 
         if (!start.empty() && !end.empty() && start > end)
@@ -1521,7 +1619,7 @@ double MenuSystem::getValidatedAmount(bool allowEmpty)
 
     while (true)
     {
-        std::cout << "Enter amount (positive number(Example: 50.00)" << (allowEmpty ? ", or press Enter to skip" : "") << "): ";
+        std::cout << "Enter minimum amount to filter (positive number, e.g. 50.00" << (allowEmpty ? ", or press Enter to skip" : "") << "): ";
         std::getline(std::cin, input);
 
         // When users press Enter, it returns the default value 0.0.
@@ -1610,7 +1708,7 @@ void MenuSystem::displayMainMenu()
     std::cout << "[2] Search Record by ID" << std::endl;
     std::cout << "[3] Record Management (Add, Import, Update, Delete)" << std::endl;
     std::cout << "[4] Financial Analytics & Reports" << std::endl;
-    std::cout << "[5] Category Management" << std::endl;
+    std::cout << "[5] Category Management (List, Add, Update, Delete)" << std::endl;
     std::cout << "[0] Exit and Save" << std::endl;
     std::cout << "===========================================\n";
     std::cout << "Enter your choice: ";
