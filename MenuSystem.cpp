@@ -18,6 +18,7 @@ extern "C"
 #include "BudgetStatus.h"
 #include "BudgetHealth.h"
 #include "FinancialAnalyzer.h"
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <string>
