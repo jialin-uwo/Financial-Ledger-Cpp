@@ -10,6 +10,7 @@
  * @date 2026-03-06
  */
 #include "LedgerController.hpp"
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <cstdio>
