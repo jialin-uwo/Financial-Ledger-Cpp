@@ -749,7 +749,12 @@ void MenuSystem::handleSearchRecords()
 
     if (results.empty())
     {
-        std::cout << "\n> No records found or invalid criteria." << std::endl;
+        std::string error = controller.getLastError().message;
+        std::cout << "\n> No records found or invalid criteria.";
+        if (!error.empty()) {
+            std::cout << "\n> Reason: " << error;
+        }
+        std::cout << std::endl;
     }
     else
     {
