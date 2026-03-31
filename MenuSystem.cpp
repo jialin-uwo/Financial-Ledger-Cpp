@@ -228,7 +228,7 @@ void MenuSystem::handleSearchRecordById()
         return;
     }
 
-    // 用getRecords全量查找
+    // Use getRecords to search all records
     std::vector<Record> all = controller.getRecords();
     auto it = std::find_if(all.begin(), all.end(), [id](const Record &r)
                            { return r.getId() == id; });
@@ -370,7 +370,7 @@ void MenuSystem::run()
         }
         else if (choice == "3")
         {
-            // Record Management 子菜单
+            // Record Management
             while (true)
             {
                 std::cout << "\n--- Record Management ---" << std::endl;
@@ -398,10 +398,13 @@ void MenuSystem::run()
         }
         else if (choice == "4")
         {
-            // Financial Analytics & Reports 子菜单
+            // Financial Analytics & Reports
             while (true)
             {
+
                 std::cout << "\n--- Financial Analytics & Reports ---" << std::endl;
+                std::cout << "This section provides various analysis and report features to help you understand your financial situation, spending habits, and trends.\n";
+                std::cout << "Available analyses include: summary, totals, budget status, expense distribution, monthly trends, and income vs expense comparison." << std::endl;
                 std::cout << "[1] Financial Summary (All-in-one)" << std::endl;
                 std::cout << "[2] Simple Total" << std::endl;
                 std::cout << "[3] Budget Status" << std::endl;
@@ -432,7 +435,7 @@ void MenuSystem::run()
         }
         else if (choice == "5")
         {
-            // Category Management 子菜单
+            // Category Management
             while (true)
             {
                 std::cout << "\n--- Category Management ---" << std::endl;
@@ -527,7 +530,22 @@ void MenuSystem::handleAddRecord()
 
     std::string date = getValidatedInput("Enter date (YYYY-MM-DD): ");
 
-    double amount = getValidatedAmount();
+    double amount = 0.0;
+    while (true)
+    {
+        std::cout << "Enter amount (e.g. 123.45): ";
+        std::string input;
+        std::getline(std::cin, input);
+        try
+        {
+            amount = std::stod(input);
+            break;
+        }
+        catch (...)
+        {
+            std::cout << "Invalid number format. Please enter a valid number like 123.45." << std::endl;
+        }
+    }
 
     std::string typeStr = getValidatedInput("Is it an expense? (y/n): ");
 
@@ -537,6 +555,36 @@ void MenuSystem::handleAddRecord()
 
     Result result = controller.addRecord(date, amount, isExpense, category);
     std::cout << "\n> " << result.message << std::endl;
+
+    // if add success and date is in current month, show updated budget status for that category
+    if (result.ok())
+    {
+        // if category is empty, it means it will be auto-assigned to "Other Income" or "Other Expense", so we should check both cases in the budget status display
+        if (date.size() >= 7)
+        {
+            time_t t = time(nullptr);
+            tm *now = localtime(&t);
+            char buf[8];
+            strftime(buf, sizeof(buf), "%Y-%m", now);
+            std::string currentMonth(buf);
+            if (date.substr(0, 7) == currentMonth)
+            {
+                // After adding a record, if it's in the current month, show the updated budget status for the relevant category
+                std::vector<BudgetStatus> statuses = controller.getCurrentBudgetStatus();
+                std::vector<BudgetStatus> filtered;
+                for (const auto &s : statuses)
+                {
+                    if (s.categoryName == category || (category.empty() && s.categoryName.find("Other") != std::string::npos))
+                        filtered.push_back(s);
+                }
+                if (!filtered.empty())
+                {
+                    std::cout << "\n[Updated Budget Status for Category]" << std::endl;
+                    renderBudgetStatus(filtered, true);
+                }
+            }
+        }
+    }
 }
 
 void MenuSystem::handleAddRecordByFile()
@@ -562,34 +610,103 @@ Please enter the FULL path to your CSV file:
     std::string filePath = getValidatedInput("\nEnter import file path: ");
 
     Result result = controller.addRecordsByFile(filePath);
-    std::cout << "\n> " << result.message << std::endl;
-    if (!result.ok())
+
+    size_t pos = result.message.find("Error details:");
+    if (pos != std::string::npos)
     {
-        // Try to print error details in a clearer, multi-line format if present
-        size_t pos = result.message.find("Error details:");
-        if (pos != std::string::npos)
+        std::string summary = result.message.substr(0, pos);
+        std::string details = result.message.substr(pos + 14); // 14 = strlen("Error details:")
+
+        std::cout << std::endl;
+        size_t autoPos = summary.find("Auto-created");
+        if (autoPos != std::string::npos)
         {
-            std::string summary = result.message.substr(0, pos);
-            std::string details = result.message.substr(pos + 14); // 14 = strlen("Error details:")
-            std::cout << "> " << summary << std::endl;
-            std::cout << "> Error details:" << std::endl;
-            // Split details by "] [" and print each on a new line
-            size_t start = 0;
-            while (start < details.size())
-            {
-                size_t open = details.find('[', start);
-                size_t close = details.find(']', open);
-                if (open == std::string::npos || close == std::string::npos)
-                    break;
-                std::string err = details.substr(open + 1, close - open - 1);
-                std::cout << "  - " << err << std::endl;
-                start = close + 1;
-            }
+            std::string first = summary.substr(0, autoPos);
+            std::string second = summary.substr(autoPos);
+
+            while (!first.empty() && (first.front() == ' '))
+                first.erase(0, 1);
+            while (!first.empty() && (first.back() == ' '))
+                first.pop_back();
+            while (!second.empty() && (second.front() == ' '))
+                second.erase(0, 1);
+            while (!second.empty() && (second.back() == ' '))
+                second.pop_back();
+            if (!first.empty())
+                std::cout << "> " << first << std::endl;
+            if (!second.empty())
+                std::cout << "> " << second << std::endl;
         }
         else
         {
-            std::cout << "> " << result.message << std::endl;
+            // 没有 Auto-created 就整句一行
+            std::string line = summary;
+            while (!line.empty() && (line.front() == ' '))
+                line.erase(0, 1);
+            while (!line.empty() && (line.back() == ' '))
+                line.pop_back();
+            if (!line.empty())
+                std::cout << "> " << line << std::endl;
         }
+        std::cout << std::string(50, '-') << std::endl;
+        std::cout << "> Error details (grouped, with lines):" << std::endl;
+        // 1. Split details by "] [" to get individual error blocks
+        size_t start = 0;
+        while (start < details.size())
+        {
+            size_t open = details.find('[', start);
+            size_t close = details.find(']', open);
+            if (open == std::string::npos || close == std::string::npos)
+                break;
+            std::string errBlock = details.substr(open + 1, close - open - 1);
+
+            while (!errBlock.empty() && (errBlock.front() == ' '))
+                errBlock.erase(0, 1);
+            while (!errBlock.empty() && (errBlock.back() == ' '))
+                errBlock.pop_back();
+            if (!errBlock.empty())
+            {
+
+                std::string toFind = "Category '";
+                size_t catPos = errBlock.find(toFind);
+                size_t typePos = errBlock.find("type does not match record type.");
+                if (catPos != std::string::npos && typePos != std::string::npos)
+                {
+                    // Extract category name for clearer error message
+                    size_t colonPos = errBlock.find(":");
+                    std::string msg = "Category expense/income type does not match record type.";
+                    std::string lineNums = (colonPos != std::string::npos) ? errBlock.substr(colonPos + 1) : "";
+                    if (!lineNums.empty())
+                    {
+                        std::cout << "> " << msg << " (lines: " << lineNums << ")" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "> " << msg << std::endl;
+                    }
+                }
+                else
+                {
+                    size_t colonPos = errBlock.find(":");
+                    if (colonPos != std::string::npos)
+                    {
+                        std::string msg = errBlock.substr(0, colonPos);
+                        std::string lineNums = errBlock.substr(colonPos + 1);
+                        std::cout << "> " << msg << " (lines: " << lineNums << ")" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "> " << errBlock << std::endl;
+                    }
+                }
+            }
+            start = close + 1;
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cout << "\n> " << result.message << std::endl;
     }
 }
 
@@ -633,10 +750,6 @@ void MenuSystem::handleSearchRecords()
     if (results.empty())
     {
         std::cout << "\n> No records found or invalid criteria." << std::endl;
-        if (!controller.getLastError().message.empty())
-        {
-            // 只输出一次错误信息，已在其它地方输出
-        }
     }
     else
     {
@@ -698,7 +811,22 @@ void MenuSystem::handleUpdateRecord()
 
     std::cout << "Enter new details below:" << std::endl;
     std::string date = getValidatedInput("Enter new date (YYYY-MM-DD): ");
-    double amount = getValidatedAmount();
+    double amount = 0.0;
+    while (true)
+    {
+        std::cout << "Enter new amount (e.g. 123.45): ";
+        std::string input;
+        std::getline(std::cin, input);
+        try
+        {
+            amount = std::stod(input);
+            break;
+        }
+        catch (...)
+        {
+            std::cout << "Invalid number format. Please enter a valid number like 123.45." << std::endl;
+        }
+    }
 
     std::string typeStr = getValidatedInput("Is it an expense? (y/n): ");
     bool isExpense = (typeStr == "y" || typeStr == "Y");
@@ -707,6 +835,36 @@ void MenuSystem::handleUpdateRecord()
 
     Result result = controller.updateRecord(id, date, amount, isExpense, category);
     std::cout << "\n> " << result.message << std::endl;
+
+    if (result.ok())
+    {
+
+        if (date.size() >= 7)
+        {
+            time_t t = time(nullptr);
+            tm *now = localtime(&t);
+            char buf[8];
+            strftime(buf, sizeof(buf), "%Y-%m", now);
+            std::string currentMonth(buf);
+            if (date.substr(0, 7) == currentMonth)
+            {
+
+                // After updating a record, if it's in the current month, show the updated budget status for the relevant category
+                std::vector<BudgetStatus> statuses = controller.getCurrentBudgetStatus();
+                std::vector<BudgetStatus> filtered;
+                for (const auto &s : statuses)
+                {
+                    if (s.categoryName == category || (category.empty() && s.categoryName.find("Other") != std::string::npos))
+                        filtered.push_back(s);
+                }
+                if (!filtered.empty())
+                {
+                    std::cout << "\n[Updated Budget Status for Category]" << std::endl;
+                    renderBudgetStatus(filtered, true);
+                }
+            }
+        }
+    }
 }
 
 void MenuSystem::handleDeleteRecord()
@@ -731,9 +889,6 @@ void MenuSystem::handleDeleteRecord()
 
 void MenuSystem::handleFinancialSummary()
 {
-    std::cout << "\n--- Financial Analytics & Reports ---" << std::endl;
-    std::cout << "This section provides various analysis and report features to help you understand your financial situation, spending habits, and trends.\n";
-    std::cout << "Available analyses include: summary, totals, budget status, expense distribution, monthly trends, and income vs expense comparison." << std::endl;
     std::cout << "\n--- Financial Summary (All-in-one) ---" << std::endl;
     std::cout << "(Time filter only. Press Enter to include from the earliest record or up to the latest record)" << std::endl;
 
@@ -745,10 +900,7 @@ void MenuSystem::handleFinancialSummary()
     if (summary.empty())
     {
         std::cout << "> No data available to generate summary for the selected period." << std::endl;
-        if (!controller.getLastError().message.empty())
-        {
-            // 只输出一次错误信息，已在其它地方输出
-        }
+
         return;
     }
 
@@ -1162,43 +1314,63 @@ void MenuSystem::handleDeleteCategory()
             std::cout << "> Note: No records needed reassignment." << std::endl;
         }
     }
-    else
-    {
-        // 只输出一次错误信息，已在其它地方输出
-    }
 }
 
 void MenuSystem::handleCurrentBudgetStatus()
 {
     std::cout << "\n=== Budget Status Report ===\n";
-    std::cout << "This report shows your budget status for each category in the current month, helping you track whether you are within, near, or over your budget." << std::endl;
-
-    std::vector<BudgetStatus> statuses = controller.getCurrentBudgetStatus();
-
+    std::cout << "You can view budget status for any month.\n";
+    std::cout << "Enter year and month (YYYY-MM) or press Enter for current month: ";
+    std::string yearMonth;
+    std::getline(std::cin, yearMonth);
+    std::vector<BudgetStatus> statuses;
+    bool isCurrentMonth = yearMonth.empty();
+    if (isCurrentMonth)
+    {
+        statuses = controller.getCurrentBudgetStatus();
+        std::cout << "\n[Current Month]" << std::endl;
+    }
+    else
+    {
+        statuses = controller.getBudgetStatusForMonth(yearMonth);
+        std::cout << "\n[Selected Month: " << yearMonth << "]" << std::endl;
+    }
     if (statuses.empty())
     {
-        std::cout << "No active budgets found or no expense categories exist.\n";
+        std::cout << "No active budgets found or no expense categories exist for this month.\n";
         return;
     }
-    renderBudgetStatus(statuses);
-    std::cout << "\nEnd of current month budget status report.\n";
+    renderBudgetStatus(statuses, isCurrentMonth);
+    std::cout << "\nEnd of budget status report.\n";
 }
 
-void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus> &statuses)
+void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus> &statuses, bool showRemaining)
 {
     const std::string COLOR_RESET = "\033[0m";
     const std::string COLOR_GREEN = "\033[32m";  // Safe
-    const std::string COLOR_YELLOW = "\033[33m"; // Warning
+    const std::string COLOR_YELLOW = "\033[93m"; // Warning (bright yellow)
     const std::string COLOR_RED = "\033[31m";    // Exceeded
 
-    std::cout << std::left
-              << std::setw(15) << "Category"
-              << std::setw(10) << "Health"
-              << std::setw(12) << "Budget"
-              << std::setw(12) << "Spent"
-              << std::setw(12) << "Remaining"
-              << "Daily Rec." << "\n";
-    std::cout << std::string(75, '-') << "\n";
+    if (showRemaining)
+    {
+        std::cout << std::left
+                  << std::setw(15) << "Category"
+                  << std::setw(10) << "Health"
+                  << std::setw(12) << "Budget"
+                  << std::setw(12) << "Spent"
+                  << std::setw(12) << "Remaining"
+                  << "Daily Rec." << "\n";
+        std::cout << std::string(75, '-') << "\n";
+    }
+    else
+    {
+        std::cout << std::left
+                  << std::setw(15) << "Category"
+                  << std::setw(10) << "Health"
+                  << std::setw(12) << "Budget"
+                  << std::setw(12) << "Spent" << "\n";
+        std::cout << std::string(55, '-') << "\n";
+    }
 
     for (const auto &status : statuses)
     {
@@ -1226,26 +1398,40 @@ void MenuSystem::renderBudgetStatus(const std::vector<BudgetStatus> &statuses)
             break;
         }
 
-        std::cout << colorCode
-                  << std::left << std::setw(15) << status.categoryName
-                  << std::setw(10) << healthStr
-                  << "$" << std::setw(11) << std::fixed << std::setprecision(2) << status.budgetLimit
-                  << "$" << std::setw(11) << status.actualSpent
-                  << "$" << std::setw(11) << status.remaining;
-
-        if (status.dailyAvailable >= 0.0)
+        // Warning整行黄色，其余按原色
+        if (status.budgetHealth == BudgetHealth::Warning)
         {
-            std::cout << "$" << status.dailyAvailable << " (" << status.daysRemaining << " days left)";
+            std::cout << COLOR_YELLOW;
         }
         else
         {
-            std::cout << "N/A";
+            std::cout << colorCode;
+        }
+        std::cout << std::left << std::setw(15) << status.categoryName
+                  << std::setw(10) << healthStr
+                  << "$" << std::setw(11) << std::fixed << std::setprecision(2) << status.budgetLimit
+                  << "$" << std::setw(11) << status.actualSpent;
+
+        if (showRemaining)
+        {
+            std::cout << "$" << std::setw(11) << status.remaining;
+            if (status.dailyAvailable >= 0.0)
+            {
+                std::cout << "$" << status.dailyAvailable << " (" << status.daysRemaining << " days left)";
+            }
+            else
+            {
+                std::cout << "N/A";
+            }
         }
 
         std::cout << COLOR_RESET << "\n";
     }
 
-    std::cout << std::string(75, '-') << "\n";
+    if (showRemaining)
+        std::cout << std::string(75, '-') << "\n";
+    else
+        std::cout << std::string(55, '-') << "\n";
 }
 
 void MenuSystem::handleDistribution()

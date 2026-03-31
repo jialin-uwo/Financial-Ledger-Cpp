@@ -28,7 +28,7 @@ private:
     void handleFinancialSummary();
 
     void handleCurrentBudgetStatus();
-    static void renderBudgetStatus(const std::vector<BudgetStatus> &statuses);
+    static void renderBudgetStatus(const std::vector<BudgetStatus> &statuses, bool showRemaining);
     void handleDistribution();
     static void renderDistribution(const std::pair<double, std::vector<CategoryDistItem>> &distribution);
     void handleTrend() const;

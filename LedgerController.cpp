@@ -950,3 +950,28 @@ int LedgerController::getCategoryTypeByName(const std::string &name) const
     }
     return -1;
 }
+
+std::vector<BudgetStatus> LedgerController::getBudgetStatusForMonth(const std::string &yearMonth)
+{
+    std::vector<BudgetStatus> budgetStatusList;
+    if (yearMonth.size() != 7 || yearMonth[4] != '-')
+    {
+        this->lastError = "Invalid yearMonth format. Use YYYY-MM.";
+        return budgetStatusList;
+    }
+    std::string monthStart = yearMonth + "-01";
+    std::string monthEnd = yearMonth + "-31";
+    for (const Category &cat : this->categories)
+    {
+        if (!cat.getIsExpense() || !cat.hasBudget())
+            continue;
+        std::vector<Record> monthRecords = getRecords(monthStart, monthEnd, 1, cat.getName());
+        double actualSpent = 0.0;
+        for (const auto &record : monthRecords)
+            actualSpent += record.getAmount();
+        BudgetStatus status = cat.getBudgetStatus(actualSpent);
+        budgetStatusList.push_back(status);
+    }
+    this->lastError = "";
+    return budgetStatusList;
+}

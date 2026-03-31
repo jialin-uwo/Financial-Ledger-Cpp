@@ -223,8 +223,9 @@ public:
     std::vector<Category> getCategories();
 
     /**
-     * @brief Calculates current-month budget status for each category.
+     * @brief Calculates budget status for each category in the current month.
      *
+     * The "current month" is determined by the system date at runtime (e.g., if today is 2026-03-31, then current month is "2026-03").
      * Each returned BudgetStatus item contains:
      * - categoryName: Category identifier.
      * - actualSpent: Total expense recorded in the current month for the category.
@@ -240,6 +241,15 @@ public:
      * @return std::vector<BudgetStatus> One status object per category for the current month.
      */
     std::vector<BudgetStatus> getCurrentBudgetStatus();
+
+    /**
+     * @brief Calculates budget status for each category in a specified month.
+     *
+     * @param yearMonth The month to query, in "YYYY-MM" format (e.g., "2026-03").
+     *                  Must be a valid year and month; results are based on records for that month.
+     * @return std::vector<BudgetStatus> One status object per category for the specified month.
+     */
+    std::vector<BudgetStatus> getBudgetStatusForMonth(const std::string &yearMonth);
 
     /**
      * @brief Computes category distribution within an optional date range.
