@@ -751,7 +751,8 @@ void MenuSystem::handleSearchRecords()
     {
         std::string error = controller.getLastError().message;
         std::cout << "\n> No records found or invalid criteria.";
-        if (!error.empty()) {
+        if (!error.empty())
+        {
             std::cout << "\n> Reason: " << error;
         }
         std::cout << std::endl;
@@ -1342,7 +1343,15 @@ void MenuSystem::handleCurrentBudgetStatus()
     }
     if (statuses.empty())
     {
-        std::cout << "No active budgets found or no expense categories exist for this month.\n";
+        std::string error = controller.getLastError().message;
+        if (!error.empty())
+        {
+            std::cout << "> Error: " << error << std::endl;
+        }
+        else
+        {
+            std::cout << "No active budgets found or no expense categories exist for this month.\n";
+        }
         return;
     }
     renderBudgetStatus(statuses, isCurrentMonth);
