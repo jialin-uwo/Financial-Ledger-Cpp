@@ -33,26 +33,26 @@ private:
     std::string lastError;            ///< Stores error descriptions
     int nextRecordId;                 ///< Tracks the next available unique identifier
 
-   /**
-    * @brief Removes leading and trailing whitespace from a string.
-    * @param value Input string to trim.
-    * @return std::string Trimmed result.
-    */
+    /**
+     * @brief Removes leading and trailing whitespace from a string.
+     * @param value Input string to trim.
+     * @return std::string Trimmed result.
+     */
     static std::string trim(const std::string &value);
 
-   /**
-    * @brief Normalizes category input and applies a default category when needed.
-    * @param category Raw category input from caller.
-    * @param isExpense Transaction type used to select the correct default category.
-    * @return std::string Normalized category name.
-    */
+    /**
+     * @brief Normalizes category input and applies a default category when needed.
+     * @param category Raw category input from caller.
+     * @param isExpense Transaction type used to select the correct default category.
+     * @return std::string Normalized category name.
+     */
     static std::string normalizeCategoryInput(const std::string &category, bool isExpense);
 
-   /**
-    * @brief Returns the default category name for a transaction type.
-    * @param isExpense True for expense, false for income.
-    * @return std::string "Other Expense" when true; otherwise "Other Income".
-    */
+    /**
+     * @brief Returns the default category name for a transaction type.
+     * @param isExpense True for expense, false for income.
+     * @return std::string "Other Expense" when true; otherwise "Other Income".
+     */
     static std::string defaultCategoryName(bool isExpense);
 
 public:
@@ -79,7 +79,7 @@ public:
 
     /**
      * @brief Saves data and closes the file stream.
-        * @return Result Status of the shutdown. Returns an error Result if record persistence fails.
+     * @return Result Status of the shutdown. Returns an error Result if record persistence fails.
      */
     Result shutDown();
 
@@ -143,7 +143,7 @@ public:
 
     /**
      * @brief Retrieves the last error message recorded by the controller.
-        * @return Result The last error wrapped in a Result object; contains an empty message if no error is recorded.
+     * @return Result The last error wrapped in a Result object; contains an empty message if no error is recorded.
      */
     Result getLastError();
 
@@ -193,7 +193,7 @@ public:
      * @param isExpense Optional transaction type filter. Defaults to -1 (no filter, returns both income and expense).
      *                   Use 0 for income only, 1 for expense only.
      * @param cat Optional category filter (e.g., "Food", "Rent"). Empty string means all categories.
-    * @return Result A formatted summary message:
+     * @return Result A formatted summary message:
      *         - For isExpense=-1: "Total Income: $X.XX, Total Expense: $Y.YY, Balance: $Z.ZZ"
      *         - For isExpense=0: "Total Income: $X.XX"
      *         - For isExpense=1: "Total Expense: $X.XX"
@@ -243,7 +243,7 @@ public:
 
     /**
      * @brief Retrieves all categories currently in the system.
-        * @return std::vector<Category> Category objects including name/type/budget/warning-threshold settings.
+     * @return std::vector<Category> Category objects including name/type/budget/warning-threshold settings.
      */
     std::vector<Category> getCategories();
 
@@ -321,7 +321,7 @@ public:
     std::map<std::string, std::pair<double, double>> getIncomeExpense(std::string start = "", std::string end = "");
 
     /**
-        * @brief Finds a record by its unique ID.
+     * @brief Finds a record by its unique ID.
      * @param id The unique identifier of the record to search for.
      * @return The matching Record if found, otherwise a Record with id = -1.
      */
