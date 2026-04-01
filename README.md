@@ -1,6 +1,3 @@
-
-
-
 # CS 3307 Group 27 Ledger System
 
 A terminal-based personal finance ledger system supporting income/expense management, data persistence, batch import, and statistical analysis. Designed to help users efficiently track and analyze their daily finances.
