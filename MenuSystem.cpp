@@ -1,3 +1,13 @@
+
+/**
+ * @file MenuSystem.cpp
+ * @brief Implementation of the MenuSystem class.
+ * This file contains the functional logic for menu rendering,
+ * list display, income and expenditure comparison chart,
+ * and the error message display.
+ * @author Junqi Zheng
+ */
+
 #include <cstdio>
 #ifdef __cplusplus
 extern "C"
