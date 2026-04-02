@@ -23,7 +23,7 @@ id,date,amount,isExpense,category
 22,2024-01-13,8,1,Shopping
 23,2024-01-14,180,1,Other Expense
 24,2024-01-14,8,1,Housing
-25,2024-01-15,4150,0,Bonus
+25,2024-01-15,4150,0,Salary
 26,2024-01-15,680,1,Healthcare
 27,2024-01-15,45,1,Food
 28,2024-01-16,30,1,Transport
@@ -56,7 +56,7 @@ id,date,amount,isExpense,category
 55,2024-01-30,75,1,Food
 56,2024-01-31,12,1,Transport
 57,2024-01-31,120,1,Shopping
-58,2024-02-01,2900,0,Bonus
+58,2024-02-01,2900,0,Salary
 59,2024-02-01,75,1,Housing
 60,2024-02-02,400,1,Entertainment
 61,2024-02-02,650,1,Healthcare
@@ -107,7 +107,7 @@ id,date,amount,isExpense,category
 106,2024-02-29,180,1,Shopping
 107,2024-02-29,120,1,Other Expense
 108,2024-02-29,45,1,Housing
-109,2024-03-01,2850,0,Bonus
+109,2024-03-01,2850,0,Salary
 110,2024-03-01,18,1,Healthcare
 111,2024-03-01,75,1,Food
 112,2024-03-02,90,1,Transport
@@ -156,7 +156,7 @@ id,date,amount,isExpense,category
 155,2024-03-30,90,1,Shopping
 156,2024-03-30,90,1,Other Expense
 157,2024-03-31,390,1,Housing
-158,2024-04-01,2800,0,Other Income
+158,2024-04-01,2800,0,Salary
 159,2024-04-01,22,1,Healthcare
 160,2024-04-01,15,1,Food
 161,2024-04-01,650,1,Transport
@@ -219,7 +219,7 @@ id,date,amount,isExpense,category
 218,2024-04-29,22,1,Shopping
 219,2024-04-30,15,1,Other Expense
 220,2024-04-30,1600,1,Housing
-221,2024-05-01,3200,0,Other Income
+221,2024-05-01,3200,0,Salary
 222,2024-05-01,120,1,Healthcare
 223,2024-05-01,400,1,Food
 224,2024-05-02,60,1,Transport
@@ -279,7 +279,7 @@ id,date,amount,isExpense,category
 278,2024-05-30,30,1,Healthcare
 279,2024-05-31,60,1,Food
 280,2024-05-31,400,1,Transport
-281,2024-06-01,4100,0,Other Income
+281,2024-06-01,4100,0,Salary
 282,2024-06-01,360,0,Other Income
 283,2024-06-01,45,1,Housing
 284,2024-06-01,90,1,Entertainment
@@ -341,7 +341,7 @@ id,date,amount,isExpense,category
 340,2024-06-29,120,1,Entertainment
 341,2024-06-30,22,1,Healthcare
 342,2024-06-30,180,1,Food
-343,2024-07-01,4500,0,Bonus
+343,2024-07-01,4500,0,Salary
 344,2024-07-01,250,1,Shopping
 345,2024-07-01,75,1,Other Expense
 346,2024-07-02,75,1,Housing
@@ -385,7 +385,7 @@ id,date,amount,isExpense,category
 384,2024-07-29,15,1,Food
 385,2024-07-29,860,1,Transport
 386,2024-07-30,90,1,Shopping
-387,2024-08-01,2950,0,Other Income
+387,2024-08-01,2950,0,Salary
 388,2024-08-01,12,1,Housing
 389,2024-08-02,30,1,Entertainment
 390,2024-08-03,12,1,Healthcare
@@ -446,7 +446,7 @@ id,date,amount,isExpense,category
 445,2024-08-29,400,1,Entertainment
 446,2024-08-29,120,1,Healthcare
 447,2024-08-30,400,1,Food
-448,2024-09-01,4600,0,Bonus
+448,2024-09-01,4600,0,Salary
 449,2024-09-01,120,0,Other Income
 450,2024-09-01,8,1,Other Expense
 451,2024-09-01,90,1,Housing
@@ -506,7 +506,7 @@ id,date,amount,isExpense,category
 505,2024-09-29,890,1,Shopping
 506,2024-09-29,180,1,Other Expense
 507,2024-09-30,60,1,Housing
-508,2024-10-01,4050,0,Bonus
+508,2024-10-01,4050,0,Salary
 509,2024-10-01,15,1,Healthcare
 510,2024-10-01,480,1,Food
 511,2024-10-02,30,1,Transport
@@ -555,7 +555,7 @@ id,date,amount,isExpense,category
 554,2024-10-30,8,1,Shopping
 555,2024-10-30,1600,1,Other Expense
 556,2024-10-31,75,1,Housing
-557,2024-11-01,1800,0,Other Income
+557,2024-11-01,1800,0,Salary
 558,2024-11-01,60,1,Healthcare
 559,2024-11-01,12,1,Food
 560,2024-11-02,15,1,Transport
@@ -610,7 +610,7 @@ id,date,amount,isExpense,category
 609,2024-11-29,22,1,Transport
 610,2024-11-30,1150,1,Shopping
 611,2024-11-30,120,1,Other Expense
-612,2024-12-01,4100,0,Other Income
+612,2024-12-01,4100,0,Salary
 613,2024-12-01,120,1,Entertainment
 614,2024-12-01,12,1,Healthcare
 615,2024-12-02,15,1,Food
@@ -667,7 +667,7 @@ id,date,amount,isExpense,category
 666,2024-12-30,12,1,Shopping
 667,2024-12-30,90,1,Other Expense
 668,2024-12-31,12,1,Housing
-669,2025-01-01,2600,0,Other Income
+669,2025-01-01,2600,0,Salary
 670,2025-01-01,45,1,Healthcare
 671,2025-01-01,45,1,Food
 672,2025-01-02,75,1,Transport
@@ -720,7 +720,7 @@ id,date,amount,isExpense,category
 719,2025-01-30,900,1,Healthcare
 720,2025-01-31,400,1,Food
 721,2025-01-31,650,1,Transport
-722,2025-02-01,1800,0,Other Income
+722,2025-02-01,1800,0,Salary
 723,2025-02-01,120,0,Other Income
 724,2025-02-01,12,1,Housing
 725,2025-02-01,15,1,Entertainment
@@ -776,7 +776,7 @@ id,date,amount,isExpense,category
 775,2025-02-28,15,1,Healthcare
 776,2025-02-28,1380,1,Food
 777,2025-02-28,8,1,Transport
-778,2025-03-01,2500,0,Bonus
+778,2025-03-01,2500,0,Salary
 779,2025-03-01,250,1,Other Expense
 780,2025-03-01,45,1,Housing
 781,2025-03-03,400,1,Entertainment
@@ -822,7 +822,7 @@ id,date,amount,isExpense,category
 821,2025-03-30,30,1,Other Expense
 822,2025-03-31,30,1,Housing
 823,2025-03-31,90,1,Entertainment
-824,2025-04-01,4050,0,Other Income
+824,2025-04-01,4050,0,Salary
 825,2025-04-01,45,1,Food
 826,2025-04-01,30,1,Transport
 827,2025-04-02,120,1,Shopping
@@ -830,7 +830,7 @@ id,date,amount,isExpense,category
 829,2025-04-02,12,1,Housing
 830,2025-04-03,22,1,Entertainment
 831,2025-04-04,400,1,Healthcare
-832,2026-03-28,1000,0,Interest
+832,2026-03-28,1000,0,Salary
 833,2026-03-28,2000,0,Interest
 834,2025-01-01,4100,0,Other Income
 835,2025-01-01,30,1,Shopping
@@ -1056,7 +1056,7 @@ id,date,amount,isExpense,category
 1055,2025-04-29,22,1,Entertainment
 1056,2025-04-30,22,1,Healthcare
 1057,2025-04-30,12,1,Food
-1058,2025-05-01,1850,0,Other Income
+1058,2025-05-01,1850,0,Salary
 1059,2025-05-01,22,1,Shopping
 1060,2025-05-02,120,1,Other Expense
 1061,2025-05-02,75,1,Housing
@@ -1113,7 +1113,7 @@ id,date,amount,isExpense,category
 1112,2025-05-31,75,1,Healthcare
 1113,2025-05-31,22,1,Food
 1114,2025-05-31,22,1,Transport
-1115,2025-06-01,2200,0,Other Income
+1115,2025-06-01,2200,0,Salary
 1116,2025-06-01,30,1,Other Expense
 1117,2025-06-01,650,1,Housing
 1118,2025-06-02,8,1,Entertainment
@@ -1170,7 +1170,7 @@ id,date,amount,isExpense,category
 1169,2025-06-29,120,1,Food
 1170,2025-06-30,8,1,Transport
 1171,2025-06-30,90,1,Shopping
-1172,2025-07-01,2850,0,Other Income
+1172,2025-07-01,2850,0,Salary
 1173,2025-07-01,12,1,Housing
 1174,2025-07-01,120,1,Entertainment
 1175,2025-07-02,180,1,Healthcare
@@ -1224,7 +1224,7 @@ id,date,amount,isExpense,category
 1223,2025-07-30,30,1,Entertainment
 1224,2025-07-30,75,1,Healthcare
 1225,2025-07-31,60,1,Food
-1226,2025-08-01,2950,0,Other Income
+1226,2025-08-01,2950,0,Salary
 1227,2025-08-01,180,1,Shopping
 1228,2025-08-01,45,1,Other Expense
 1229,2025-08-02,890,1,Housing
@@ -1284,7 +1284,7 @@ id,date,amount,isExpense,category
 1283,2025-08-30,60,1,Shopping
 1284,2025-08-31,8,1,Other Expense
 1285,2025-08-31,120,1,Housing
-1286,2025-09-01,4550,0,Other Income
+1286,2025-09-01,4550,0,Salary
 1287,2025-09-01,620,1,Healthcare
 1288,2025-09-01,45,1,Food
 1289,2025-09-02,1245,1,Transport
@@ -1339,7 +1339,7 @@ id,date,amount,isExpense,category
 1338,2025-09-30,90,1,Transport
 1339,2025-09-30,30,1,Shopping
 1340,2025-09-30,8,1,Other Expense
-1341,2025-10-01,1900,0,Other Income
+1341,2025-10-01,1900,0,Salary
 1342,2025-10-01,120,1,Entertainment
 1343,2025-10-02,90,1,Healthcare
 1344,2025-10-03,15,1,Food
@@ -1392,7 +1392,7 @@ id,date,amount,isExpense,category
 1391,2025-10-29,400,1,Entertainment
 1392,2025-10-29,400,1,Healthcare
 1393,2025-10-31,15,1,Food
-1394,2025-11-01,2300,0,Other Income
+1394,2025-11-01,2300,0,Salary
 1395,2025-11-01,250,1,Shopping
 1396,2025-11-01,890,1,Other Expense
 1397,2025-11-02,60,1,Housing
@@ -1443,7 +1443,7 @@ id,date,amount,isExpense,category
 1442,2025-11-29,250,1,Food
 1443,2025-11-30,60,1,Transport
 1444,2025-11-30,1208,1,Shopping
-1445,2025-12-01,4600,0,Other Income
+1445,2025-12-01,4600,0,Salary
 1446,2025-12-01,12,1,Housing
 1447,2025-12-01,15,1,Entertainment
 1448,2025-12-02,250,1,Healthcare
@@ -1501,7 +1501,7 @@ id,date,amount,isExpense,category
 1500,2025-12-30,18,1,Shopping
 1501,2025-12-30,75,1,Other Expense
 1502,2025-12-31,90,1,Housing
-1503,2026-01-01,2600,0,Other Income
+1503,2026-01-01,2600,0,Salary
 1504,2026-01-01,400,1,Healthcare
 1505,2026-01-02,400,1,Food
 1506,2026-01-02,120,1,Transport
@@ -1579,7 +1579,7 @@ id,date,amount,isExpense,category
 1578,2026-02-13,180,1,Other Expense
 1579,2026-02-13,12,1,Housing
 1580,2026-02-14,400,1,Entertainment
-1581,2026-02-15,2950,0,Other Income
+1581,2026-02-15,2950,0,Salary
 1582,2026-02-15,60,1,Food
 1583,2026-02-16,18,1,Transport
 1584,2026-02-16,15,1,Shopping
@@ -1628,7 +1628,6 @@ id,date,amount,isExpense,category
 1627,2026-03-25,24,1,Food
 1628,2026-03-25,26,1,Food
 1629,2026-03-26,28,1,Food
-1630,2026-03-27,300,1,Travel
 1631,2026-03-29,500,0,Investment
 1632,2026-03-31,20,1,Education
 1633,2026-03-26,30,1,Food
@@ -1642,7 +1641,7 @@ id,date,amount,isExpense,category
 1641,2026-03-30,46,1,Food
 1642,2026-03-31,48,1,Food
 1643,2026-03-31,50,1,Food
-1644,2026-04-01,80,1,Food
+1644,2026-04-01,80,0,Salary
 1645,2026-04-02,120,1,Food
 1646,2026-04-07,45,1,Healthcare
 1647,2026-03-04,15,1,Other Expense
@@ -1657,10 +1656,7 @@ id,date,amount,isExpense,category
 1656,2026-03-23,16,1,Food
 1657,2026-03-23,18,1,Food
 1658,2026-03-24,20,1,Food
-1659,2026-03-27,30,1,Travel
-1660,2026-03-28,15,0,Gift
-1661,2026-03-29,500,0,Investment
-1662,2026-03-30,6,1,Pet
+
 1663,2026-03-31,20,1,Education
 1664,2026-03-04,15,1,Other Expense
 1665,2026-03-04,15,1,Other Expense
