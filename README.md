@@ -4,19 +4,41 @@ A terminal-based personal finance ledger system supporting income/expense manage
 
 ## 🚀 Quick Start
 
-**Environment Requirements:**
-- Recommended: Western University CS Virtual Machine (GAUL)
-- Or any Linux environment with g++ 9+ and full C++17 support
+### Environment
 
-1. Enter the project directory
+- Recommended platform: Western University CS Virtual Machine (GAUL)
+- Supported build environment: Linux with `g++` 9+ and full C++17 support
+- Optional tool (for diagrams only): Graphviz (`dot`)
+
+> Graphviz is only used to generate diagrams and is not required to compile or run the ledger program.
+
+Optional Graphviz install commands:
+
+- Ubuntu/Debian
+	```bash
+	sudo apt update
+	sudo apt install -y graphviz
+	```
+- macOS (Homebrew)
+	```bash
+	brew install graphviz
+	```
+- Windows (PowerShell + winget)
+	```powershell
+	winget install Graphviz.Graphviz
+	```
+
+### Build And Run
+
+1. Enter the project directory:
 	```bash
 	cd group27
 	```
-2. Compile the project
+2. Compile:
 	```bash
 	g++ -std=c++17 *.cpp -o ledger
 	```
-3. Run the application
+3. Run:
 	```bash
 	./ledger
 	```
