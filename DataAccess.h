@@ -231,7 +231,7 @@ public:
      * name,isExpense,budget,warningThreshold
      * @endcode
      *
-     * If the budget field is empty, it defaults to @c -0.1.
+     * If the budget field is empty, it defaults to @c -1.0.
      * If the warning threshold field is empty, it defaults to @c -1.0.
      *
      * This method reads only from the default system file and does not

@@ -456,7 +456,7 @@ namespace
      *
      * Empty optional numeric fields are interpreted using the module's
      * default placeholder conventions:
-     * - @c budget defaults to @c -0.1 when omitted,
+     * - @c budget defaults to @c -1.0 when omitted,
      * - @c warningThreshold defaults to @c -1.0 when omitted.
      *
      * The parsed values are returned through output parameters. Validation
@@ -514,7 +514,7 @@ namespace
         }
 
         /// Initialize the budget to the module's placeholder default.
-        budget = -0.1;
+        budget = -1.0;
         if (getline(ss, token, ','))
         {
             token = trim(token);
@@ -609,7 +609,7 @@ vector<Category> DataAccess::loadCategories()
         /// Parsed category fields.
         string name;
         bool isExpense = true;
-        double budget = -0.1;
+        double budget = -1.0;
         double warningThreshold = -1.0;
         string errorMsg;
 
