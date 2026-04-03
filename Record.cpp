@@ -314,25 +314,19 @@ bool Record::validateData(const std::string &date,
         return false;
     }
 
-    /// Enforce the YYYY-MM-DD format pattern.
-    std::regex pattern(R"(^\d{4}-\d{2}-\d{2}$)");
-    if (!std::regex_match(date, pattern))
+    // First parse a relaxed Y-M-D shape so we can return calendar-specific errors.
+    std::smatch match;
+    std::regex loosePattern(R"(^(\d{4})-(\d{1,2})-(\d{1,2})$)");
+    if (!std::regex_match(date, match, loosePattern))
     {
         errorMsg = "Date must be in YYYY-MM-DD format.";
         return false;
     }
 
     /// Parsed calendar components.
-    int year = 0;
-    int month = 0;
-    int day = 0;
-
-    /// Parse the formatted date into numeric year, month, and day parts.
-    if (std::sscanf(date.c_str(), "%d-%d-%d", &year, &month, &day) != 3)
-    {
-        errorMsg = "Invalid date format.";
-        return false;
-    }
+    int year = std::stoi(match[1]);
+    int month = std::stoi(match[2]);
+    int day = std::stoi(match[3]);
 
     /// Validate the month range.
     if (month < 1 || month > 12)
@@ -356,7 +350,15 @@ bool Record::validateData(const std::string &date,
     /// Validate the day range for the parsed month and year.
     if (day < 1 || day > daysInMonth[month - 1])
     {
-        errorMsg = "Invalid day.";
+        errorMsg = "Invalid date.";
+        return false;
+    }
+
+    // Keep canonical storage format for reliable lexical date comparisons.
+    std::regex strictPattern(R"(^\d{4}-\d{2}-\d{2}$)");
+    if (!std::regex_match(date, strictPattern))
+    {
+        errorMsg = "Date must use zero-padded YYYY-MM-DD format (e.g., 2026-02-28).";
         return false;
     }
 

@@ -826,14 +826,19 @@ void MenuSystem::handleUpdateRecord()
         return;
     }
 
-    std::cout << "Enter new details below:" << std::endl;
-    std::string date = getValidatedInput("Enter new date (YYYY-MM-DD): ");
-    double amount = 0.0;
+    std::cout << "For each field below, press Enter to skip (keep current value)." << std::endl;
+    std::cout << "You must provide at least one new value to update." << std::endl;
+
+    std::string date = getValidatedInput("Enter new date (YYYY-MM-DD, optional): ", true);
+    double amount = -1.0;
     while (true)
     {
-        std::cout << "Enter new amount (e.g. 123.45): ";
-        std::string input;
-        std::getline(std::cin, input);
+        std::string input = getValidatedInput("Enter new amount (e.g. 123.45, optional): ", true);
+        if (input.empty())
+        {
+            break;
+        }
+
         try
         {
             amount = std::stod(input);
@@ -845,10 +850,34 @@ void MenuSystem::handleUpdateRecord()
         }
     }
 
-    std::string typeStr = getValidatedInput("Is it an expense? (y/n): ");
-    bool isExpense = (typeStr == "y" || typeStr == "Y");
+    int isExpense = -1;
+    while (true)
+    {
+        std::string typeStr = getValidatedInput("Is it an expense? (y/n, optional): ", true);
+        if (typeStr.empty())
+        {
+            break;
+        }
+        if (typeStr == "y" || typeStr == "Y")
+        {
+            isExpense = 1;
+            break;
+        }
+        if (typeStr == "n" || typeStr == "N")
+        {
+            isExpense = 0;
+            break;
+        }
+        std::cout << "Invalid input. Please enter y, n, or press Enter to skip." << std::endl;
+    }
 
     std::string category = getValidatedInput("Enter new category (optional, press Enter to keep current): ", true);
+
+    if (date.empty() && amount == -1.0 && isExpense == -1 && category.empty())
+    {
+        std::cout << "> Please provide at least one new field to update. Skipping all means no change." << std::endl;
+        return;
+    }
 
     Result result = controller.updateRecord(id, date, amount, isExpense, category);
     std::cout << "\n> " << result.message << std::endl;
@@ -871,7 +900,7 @@ void MenuSystem::handleUpdateRecord()
                 std::vector<BudgetStatus> filtered;
                 for (const auto &s : statuses)
                 {
-                    if (s.categoryName == category || (category.empty() && s.categoryName.find("Other") != std::string::npos))
+                    if (category.empty() || s.categoryName == category)
                         filtered.push_back(s);
                 }
                 if (!filtered.empty())
@@ -1070,7 +1099,6 @@ void MenuSystem::handleAddCategory()
     double warningThreshold = -1.0;
     if (isExpense)
     {
-        std::cout << "Note: Only expense categories can set budget and warning threshold." << std::endl;
         std::cout << "Optional fields (press Enter to skip):" << std::endl;
         std::string budgetStr = getValidatedInput("Enter monthly budget for this category (the maximum amount you plan to spend per month, >= 0, optional): ", true);
         if (budgetStr == "h" || budgetStr == "H")
@@ -1213,9 +1241,9 @@ void MenuSystem::handleUpdateCategory()
 {
     std::cout << "\n--- Update Category ---" << std::endl;
     std::string oldName = getValidatedInput("Enter the original category name to update (cannot be skipped): ");
-    std::cout << "For each field below, press Enter to skip (skipping means the field will not be changed)." << std::endl;
-    std::cout << "You must provide at least one new value to update." << std::endl;
-    std::string newName = getValidatedInput("Enter new name (optional): ", true);
+    std::cout << "Press Enter to keep the current value. Type 'clear' to remove budget and threshold." << std::endl;
+    std::cout << "At least one field must be updated." << std::endl;
+    std::string newName = getValidatedInput("Enter new name (optional, press Enter to keep current): ", true);
 
     int isExpense = -1;
     std::string typeStr = getValidatedInput("Enter new type (e/i, optional): ", true);
@@ -1254,48 +1282,71 @@ void MenuSystem::handleUpdateCategory()
     std::string budgetStr, warningStr;
     if (willBeExpense)
     {
-        std::cout << "Note: Only expense categories can set budget and warning threshold." << std::endl;
-        budgetStr = getValidatedInput("Enter new budget for this category (Default value: 70% of budget)(>= 0, optional): ", true);
+        std::cout << "Expense categories can set budget and threshold." << std::endl;
+        budgetStr = getValidatedInput("Enter new budget (>= 0, optional; Enter=keep current; clear=remove budget and warning): ", true);
         if (!budgetStr.empty())
         {
-            try
+            if (budgetStr == "clear" || budgetStr == "CLEAR" || budgetStr == "Clear")
             {
-                budget = std::stod(budgetStr);
-                if (budget < 0.0)
+                budget = -2.0; // sentinel: clear budget
+            }
+            else
+            {
+                try
                 {
-                    std::cout << "> Error: Budget must be >= 0." << std::endl;
+                    budget = std::stod(budgetStr);
+                    if (budget < 0.0)
+                    {
+                        std::cout << "> Error: Budget must be >= 0." << std::endl;
+                        return;
+                    }
+                }
+                catch (...)
+                {
+                    std::cout << "> Error: Invalid budget format." << std::endl;
                     return;
                 }
-            }
-            catch (...)
-            {
-                std::cout << "> Error: Invalid budget format." << std::endl;
-                return;
             }
         }
 
-        warningStr = getValidatedInput("Enter new warning threshold that can trigger an alarm (>= 0, optional): ", true);
-        if (!warningStr.empty())
+        if (budget != -2.0)
         {
-            try
+            warningStr = getValidatedInput("Enter new warning threshold (>= 0, optional; Enter=keep current; clear=remove warning): ", true);
+            if (!warningStr.empty())
             {
-                warningThreshold = std::stod(warningStr);
-                if (warningThreshold < 0.0)
+                if (warningStr == "clear" || warningStr == "CLEAR" || warningStr == "Clear")
                 {
-                    std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
-                    return;
+                    warningThreshold = -2.0; // sentinel: clear warning threshold
                 }
-            }
-            catch (...)
-            {
-                std::cout << "> Error: Invalid warning threshold format." << std::endl;
-                return;
+                else
+                {
+                    try
+                    {
+                        warningThreshold = std::stod(warningStr);
+                        if (warningThreshold < 0.0)
+                        {
+                            std::cout << "> Error: Warning threshold must be >= 0." << std::endl;
+                            return;
+                        }
+                    }
+                    catch (...)
+                    {
+                        std::cout << "> Error: Invalid warning threshold format." << std::endl;
+                        return;
+                    }
+                }
             }
         }
     }
+    else if (isExpense == 0)
+    {
+        std::cout << "Note: Category changed to income. Budget and warning threshold will be cleared automatically." << std::endl;
+        budget = -2.0;
+        warningThreshold = -2.0;
+    }
 
     // Check if all new fields are skipped
-    if (newName.empty() && typeStr.empty() && budgetStr.empty() && warningStr.empty())
+    if (newName.empty() && typeStr.empty() && budgetStr.empty())
     {
         std::cout << "> Please provide at least one new field to update. Skipping all means no change." << std::endl;
         return;

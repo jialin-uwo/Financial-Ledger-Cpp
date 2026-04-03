@@ -82,6 +82,35 @@ Result LedgerController::init()
         this->records.push_back(standardizedRec);
     }
 
+    // 4.5 Auto-reconcile categories referenced by records but missing in categories.csv
+    // so filtering/reporting remains consistent after startup.
+    bool categoriesChanged = false;
+    for (const auto &record : this->records)
+    {
+        const std::string recordCategory = trim(record.getCategory());
+        if (recordCategory.empty())
+        {
+            continue;
+        }
+
+        auto categoryIt = std::find_if(this->categories.begin(), this->categories.end(), [&](const Category &category)
+                                       { return trim(category.getName()) == recordCategory; });
+        if (categoryIt == this->categories.end())
+        {
+            this->categories.emplace_back(recordCategory, record.getIsExpense());
+            categoriesChanged = true;
+        }
+    }
+
+    if (categoriesChanged)
+    {
+        if (!dataAccess.saveCategories(this->categories))
+        {
+            this->lastError = "Failed to save reconciled categories during initialization.";
+            return Result(StatusCode::IO_ERROR, "FAIL: " + this->lastError);
+        }
+    }
+
     // 5. Immediate Persistence: Sync the normalized data back to CSV
     if (!records.empty())
     {
@@ -640,6 +669,7 @@ Result LedgerController::removeCategory(std::string name)
 
     const std::vector<Category> originalCategories = this->categories;
     const std::vector<Record> originalRecords = this->records;
+    int reassignedCount = 0;
 
     this->categories.erase(it);
     bool needsExpenseDefault = false;
@@ -653,6 +683,7 @@ Result LedgerController::removeCategory(std::string name)
         }
 
         record.setCategory(defaultCategoryName(record.getIsExpense()));
+        reassignedCount++;
         if (record.getIsExpense())
         {
             needsExpenseDefault = true;
@@ -701,13 +732,15 @@ Result LedgerController::removeCategory(std::string name)
     }
 
     this->lastError = "";
-    return Result(StatusCode::SUCCESS, "SUCCESS: Category '" + normalizedName + "' removed successfully.");
+    return Result(StatusCode::SUCCESS, "SUCCESS: Category '" + normalizedName + "' removed successfully.", reassignedCount);
 }
 
 Result LedgerController::updateCategory(std::string oldName, std::string newName, int isExpense, double budget, double warningThreshold)
 
 {
     const std::string normalizedOldName = trim(oldName);
+    const bool clearBudgetRequested = (budget == -2.0);
+    const bool clearWarningRequested = clearBudgetRequested || (warningThreshold == -2.0);
 
     // Find the category to update
     auto it = std::find_if(this->categories.begin(), this->categories.end(), [&](const Category &category)
@@ -731,15 +764,45 @@ Result LedgerController::updateCategory(std::string oldName, std::string newName
         return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
     }
 
+    if (budget < 0.0 && budget != -1.0 && budget != -2.0)
+    {
+        this->lastError = "Invalid budget value. Use -1 (unchanged), -2 (clear), or a non-negative value.";
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
+    }
+
+    if (warningThreshold < 0.0 && warningThreshold != -1.0 && warningThreshold != -2.0)
+    {
+        this->lastError = "Invalid warning threshold value. Use -1 (unchanged), -2 (clear), or a non-negative value.";
+        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
+    }
+
     const std::string effectiveName = newName.empty() ? trim(it->getName()) : trim(newName);
     const bool effectiveIsExpense = (isExpense == -1) ? it->getIsExpense() : (isExpense == 1);
-    const double effectiveBudget = (budget == -1.0) ? it->getBudget() : budget;
-    const double effectiveWarningThreshold = (warningThreshold == -1.0) ? it->getWarningThreshold() : warningThreshold;
-    // 收入类别不允许设置预算和预警线
-    if (!effectiveIsExpense && (effectiveBudget >= 0.0 || effectiveWarningThreshold >= 0.0))
+    double effectiveBudget = it->getBudget();
+    if (clearBudgetRequested)
     {
-        this->lastError = "Income category cannot have budget or warning threshold.";
-        return Result(StatusCode::VALIDATION_ERROR, "FAIL: " + this->lastError);
+        effectiveBudget = -1.0;
+    }
+    else if (budget >= 0.0)
+    {
+        effectiveBudget = budget;
+    }
+
+    double effectiveWarningThreshold = it->getWarningThreshold();
+    if (clearWarningRequested)
+    {
+        effectiveWarningThreshold = -1.0;
+    }
+    else if (warningThreshold >= 0.0)
+    {
+        effectiveWarningThreshold = warningThreshold;
+    }
+
+    // Income categories cannot keep budget/warning; force-clear to keep data consistent.
+    if (!effectiveIsExpense)
+    {
+        effectiveBudget = -1.0;
+        effectiveWarningThreshold = -1.0;
     }
     const bool shouldRenameRecords = effectiveName != trim(it->getName());
     const bool shouldRetypeRecords = effectiveIsExpense != it->getIsExpense();
@@ -773,14 +836,8 @@ Result LedgerController::updateCategory(std::string oldName, std::string newName
     {
         it->setIsExpense(effectiveIsExpense);
     }
-    if (budget >= 0.0)
-    {
-        it->setBudget(budget);
-    }
-    if (warningThreshold >= 0.0)
-    {
-        it->setWarningThreshold(warningThreshold);
-    }
+    it->setBudget(effectiveBudget);
+    it->setWarningThreshold(effectiveWarningThreshold);
 
     if (shouldSyncRecords)
     {
@@ -846,9 +903,11 @@ std::vector<BudgetStatus> LedgerController::getCurrentBudgetStatus()
         }
 
         const std::string currentDate = cat.getCurrentDate();
-        const std::string monthStart = currentDate.substr(0, 7) + "-01";
+        const std::string yearMonth = currentDate.substr(0, 7);
+        const std::string monthStart = yearMonth + "-01";
+        const std::string monthEnd = yearMonth + "-31";
 
-        std::vector<Record> monthRecords = getRecords(monthStart, currentDate, 1, cat.getName());
+        std::vector<Record> monthRecords = getRecords(monthStart, monthEnd, 1, cat.getName());
         double actualSpent = 0.0;
         for (const auto &record : monthRecords)
         {
