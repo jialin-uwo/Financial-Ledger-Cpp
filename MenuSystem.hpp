@@ -3,7 +3,7 @@
  * @brief Header file for the MenuSystem class in the Ledger System.
  * @details This file defines the terminal-based user interface, handling menu displays,
  * user input validation, and communication with the core controllers.
- * @author Junqi Zheng
+ * @author Junqi Zheng, Jialin Li
  */
 #ifndef MENUSYSTEM_HPP
 #define MENUSYSTEM_HPP
