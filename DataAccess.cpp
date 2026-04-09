@@ -19,7 +19,7 @@
  * Anonymous-namespace helper functions are used to keep parsing utilities
  * local to this translation unit.
  *
- * @author Zhixian Wang
+ * @author Zhixian Wang, Jialin Li
  */
 
 #include "DataAccess.h"
