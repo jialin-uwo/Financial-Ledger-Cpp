@@ -10,24 +10,6 @@ A terminal-based personal finance ledger system supporting income/expense manage
 - Supported build environment: Linux with `g++` 9+ and full C++17 support
 - Optional tool (for diagrams only): Graphviz (`dot`)
 
-> Graphviz is only used to generate diagrams and is not required to compile or run the ledger program.
-
-Optional Graphviz install commands:
-
-- Ubuntu/Debian
-	```bash
-	sudo apt update
-	sudo apt install -y graphviz
-	```
-- macOS (Homebrew)
-	```bash
-	brew install graphviz
-	```
-- Windows (PowerShell + winget)
-	```powershell
-	winget install Graphviz.Graphviz
-	```
-
 ### Build And Run
 
 1. Enter the project directory:
@@ -48,16 +30,25 @@ Optional Graphviz install commands:
 ## 🌟 Features & Highlights
 
 - **Comprehensive Record Management:** Add, query, update, and delete any income or expense record with automatic unique ID assignment.
-- **Customizable Categories:** Create and manage custom categories for both income and expenses, set budgets and warning thresholds, and auto-complete missing categories.
-- **Data Persistence:** All data is saved in CSV files for reliable, continuous usage.
-- **Batch Import:** Import multiple records at once from a CSV file, with automatic merging and validation.
-- **Statistical Analysis:**
-  - Query total income, total expense, and balance for any time period
-  - Category-based statistics and budget status analysis
-  - Monthly trend and income/expense distribution analysis
-- **Error & Exception Handling:** All user input is validated, with clear error messages for invalid formats or operations.
-- **User-Friendly Terminal Interface:** Menu-driven CLI, intuitive for all users.
-- **Well-Documented Code:** All source code is Doxygen-commented for easy maintenance and documentation generation.
+- **Customizable Categories:** Manage custom categories, set budgets, and warning thresholds with intelligent auto-completion.
+- **Data Persistence:** Reliable CSV-based storage for continuous usage.
+- **Batch Import:** High-performance import from CSV with automatic merging and validation logic.
+- **Statistical Analysis:** Real-time calculation of totals, balances, and category-based budget health.
+- **Robustness:** Strict input validation and clear exception handling across all modules.
+
+---
+
+## 🛠 Engineering Upgrades & Refactoring
+
+As a core contributor, I have spearheaded a major architectural refactoring of the system since **2026-03-29** to transition it into a robust, industry-standard application.
+
+**Key Contributions:**
+- **Transactional Integrity:** Implemented **rollback mechanisms** and **atomic write strategies** (temp file + atomic rename) to ensure zero data corruption during crashes.
+- **UX Intelligence:** Developed **context-aware UI logic**, such as dynamically hiding irrelevant metrics for historical data and implementing conditional input constraints for different category types.
+- **Standardized Communication:** Unified backend response structures with professional error propagation chains and status codes.
+- **Code Standards:** Conducted a system-wide cleanup of `using namespace std;` and improved class extensibility through explicit namespace management.
+
+👉 [**Detailed Refactoring Documentation & Changelog**](./docs/Refactoring%20&%20System%20Upgrade%20Contributions.md)
 
 ---
 
@@ -68,10 +59,11 @@ Optional Graphviz install commands:
 - `DataAccess.cpp/h` — Data persistence and CSV I/O
 - `FinancialAnalyzer.cpp/h` — Statistical analysis and summary engine
 - `Record.cpp/h` — Financial record data structure and validation
+- `Category.cpp/h` — Category management and financial logic
 - `MenuSystem.cpp/hpp` — Terminal interaction and menu logic
-- `records.csv` — Main ledger data file
-- `categories.csv` — Category information file
-- `runtime.csv` — Temporary file for batch import
+- `BudgetStatus.h` / `BudgetHealth.h` — Data structures for budget analysis
+- `Result.h` — Unified operation result and status code definitions
+- `docs/` — Comprehensive project documentation and refactoring logs
 
 ---
 
